@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+motor
+beanie
+pydantic
+pydantic-settings
+pyjwt
+passlib[bcrypt]
+python-multipart
+pandas
+scikit-learn
+xgboost
+shap
