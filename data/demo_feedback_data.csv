@@ -1,0 +1,111 @@
+feedback_id,employee_id,department,category,feedback_text,source,submitted_at
+FB-SYN-001,EMP-101,Engineering,WORKLOAD,"Workload has increased significantly with the recent project deadlines, and better task distribution would help prevent burnout.",SURVEY,2026-03-01T10:00:00Z
+FB-SYN-002,EMP-102,Engineering,CULTURE,"The engineering team culture is collaborative and deeply supportive. Code reviews are thorough and educational.",SURVEY,2026-03-02T11:15:00Z
+FB-SYN-003,EMP-103,Engineering,CAREER,"I feel there is a lack of clear progression tracks for senior individual contributors compared to management tracks.",HR_FORM,2026-03-03T14:30:00Z
+FB-SYN-004,EMP-104,Engineering,MANAGEMENT,"My engineering manager provides regular, constructive 1-on-1 feedback and advocates for our tooling needs.",MANAGER_FEEDBACK,2026-03-04T09:00:00Z
+FB-SYN-005,EMP-105,Engineering,WORKPLACE,"The hybrid policy is well-balanced, allowing focus time at home and meaningful collaboration on office days.",SURVEY,2026-03-05T16:20:00Z
+FB-SYN-006,EMP-106,Engineering,BENEFITS,"The technical book and learning stipend has been fantastic for team upskilling on cloud architecture.",SURVEY,2026-03-06T12:00:00Z
+FB-SYN-007,EMP-107,Engineering,WORKLOAD,"Constant on-call interruptions during sprint weeks are severely impacting sprint delivery and personal wellbeing.",SURVEY,2026-03-07T13:45:00Z
+FB-SYN-008,EMP-108,Engineering,ENGAGEMENT,"I feel proud of the platform scalability milestones we accomplished this quarter. Great cross-functional teamwork.",SURVEY,2026-03-08T15:10:00Z
+FB-SYN-009,EMP-109,Engineering,MANAGEMENT,"Leadership changes have caused some confusion regarding technical roadmaps and architectural priorities.",HR_FORM,2026-03-09T10:30:00Z
+FB-SYN-010,EMP-110,Engineering,EXIT,"Leaving primarily due to compensation not aligning with current senior market rates in distributed systems.",EXIT_FEEDBACK,2026-03-10T17:00:00Z
+FB-SYN-011,EMP-111,Sales,COMPENSATION,"The commission tier structure is transparent and motivates the sales team to hit quarterly targets consistently.",SURVEY,2026-03-11T09:30:00Z
+FB-SYN-012,EMP-112,Sales,WORKLOAD,"Quarter-end quotas require working weekends and late evenings. A more predictable pacing throughout the quarter is needed.",SURVEY,2026-03-12T18:00:00Z
+FB-SYN-013,EMP-113,Sales,MANAGEMENT,"Sales management is very approachable and actively helps unblock complex enterprise deals.",MANAGER_FEEDBACK,2026-03-13T11:00:00Z
+FB-SYN-014,EMP-114,Sales,WORKPLACE,"Our CRM tools are frequently slow during peak hours, creating friction during customer demo follow-ups.",SURVEY,2026-03-14T14:15:00Z
+FB-SYN-015,EMP-115,Sales,CULTURE,"The competitive spirit in the sales floor is energizing and wins are celebrated together enthusiastically.",SURVEY,2026-03-15T16:45:00Z
+FB-SYN-016,EMP-116,Sales,CAREER,"Would appreciate more enablement programs transitioning account executives into enterprise account director roles.",HR_FORM,2026-03-16T10:00:00Z
+FB-SYN-017,EMP-117,Sales,BENEFITS,"Travel per diems and client entertainment allowances have not been adjusted for recent inflation in major cities.",SURVEY,2026-03-17T13:20:00Z
+FB-SYN-018,EMP-118,Sales,ENGAGEMENT,"Sales kickoff event provided clear strategic focus and renewed excitement for our new AI product lineup.",SURVEY,2026-03-18T15:00:00Z
+FB-SYN-019,EMP-119,Sales,EXIT,"Departing to pursue an opportunity closer to home with less extensive business travel demands.",EXIT_FEEDBACK,2026-03-19T11:30:00Z
+FB-SYN-020,EMP-120,Sales,WORKLOAD,"Sales pipeline generation targets feel unrealistic given current macroeconomic tightening.",SURVEY,2026-03-20T09:45:00Z
+FB-SYN-021,EMP-121,Product,MANAGEMENT,"Product leadership fosters innovative thinking and welcomes data-driven feature proposals from all team members.",SURVEY,2026-03-21T10:00:00Z
+FB-SYN-022,EMP-122,Product,WORKLOAD,"Product managers are stretched thin across too many squads, leading to shallow specs and rushed user stories.",HR_FORM,2026-03-22T14:00:00Z
+FB-SYN-023,EMP-123,Product,CULTURE,"Strong psychological safety allows us to fail fast, conduct blameless post-mortems, and iterate rapidly.",SURVEY,2026-03-23T11:30:00Z
+FB-SYN-024,EMP-124,Product,CAREER,"Mentorship from senior directors has accelerated my growth in product strategy and commercialization.",MANAGER_FEEDBACK,2026-03-24T15:15:00Z
+FB-SYN-025,EMP-125,Product,WORKPLACE,"User testing lab equipment and Figma enterprise licenses are well-resourced and boost productivity.",SURVEY,2026-03-25T16:00:00Z
+FB-SYN-026,EMP-126,Product,BENEFITS,"Parental leave policy is generous and made returning to work smooth and supported.",SURVEY,2026-03-26T09:15:00Z
+FB-SYN-027,EMP-127,Product,ENGAGEMENT,"Seeing customer feedback on the newly shipped workflow builder was tremendously rewarding for the squad.",SURVEY,2026-03-27T13:00:00Z
+FB-SYN-028,EMP-128,Product,MANAGEMENT,"Shifting product priorities midway through quarters causes team frustration and throwaway work.",SURVEY,2026-03-28T17:30:00Z
+FB-SYN-029,EMP-129,Product,EXIT,"Moving to an early-stage venture to build an AI product zero-to-one; grateful for my time here.",EXIT_FEEDBACK,2026-03-29T12:00:00Z
+FB-SYN-030,EMP-130,Product,WORKLOAD,"Balancing customer discovery with sprint grooming leaves little room for deep strategic thinking.",SURVEY,2026-03-30T10:45:00Z
+FB-SYN-031,EMP-131,Marketing,CULTURE,"The marketing team is creative, vibrant, and celebrates diversity of thought across all brand campaigns.",SURVEY,2026-04-01T10:00:00Z
+FB-SYN-032,EMP-132,Marketing,WORKLOAD,"Juggling multiple simultaneous product launches has pushed the content team to the brink of burnout.",HR_FORM,2026-04-02T14:30:00Z
+FB-SYN-033,EMP-133,Marketing,MANAGEMENT,"Direct supervisor micro-manages design deliverables rather than setting high-level creative briefs.",SURVEY,2026-04-03T11:00:00Z
+FB-SYN-034,EMP-134,Marketing,CAREER,"Clear paths exist for digital marketing specialists to advance into brand strategy and growth marketing.",MANAGER_FEEDBACK,2026-04-04T09:30:00Z
+FB-SYN-035,EMP-135,Marketing,BENEFITS,"Remote work equipment stipend was very helpful when setting up an ergonomic home studio.",SURVEY,2026-04-05T15:00:00Z
+FB-SYN-036,EMP-136,Marketing,WORKPLACE,"In-office collaboration days are productive, but meeting rooms are hard to book on Tuesdays and Thursdays.",SURVEY,2026-04-06T16:20:00Z
+FB-SYN-037,EMP-137,Marketing,ENGAGEMENT,"Rebranding initiative achieved exceptional industry recognition, which boosted team morale immensely.",SURVEY,2026-04-07T12:15:00Z
+FB-SYN-038,EMP-138,Marketing,MANAGEMENT,"Leadership is open to experimenting with new marketing channels and AI creative tools.",SURVEY,2026-04-08T13:45:00Z
+FB-SYN-039,EMP-139,Marketing,EXIT,"Resigning due to lack of budget and head-count growth for our regional performance marketing initiatives.",EXIT_FEEDBACK,2026-04-09T17:00:00Z
+FB-SYN-040,EMP-140,Marketing,WORKLOAD,"Requesting automated analytics dashboards to reduce manual weekly reporting overhead.",SURVEY,2026-04-10T10:30:00Z
+FB-SYN-041,EMP-141,HR,ENGAGEMENT,"I feel deeply fulfilled supporting our people initiatives and onboarding fantastic new talent every month.",SURVEY,2026-04-11T11:00:00Z
+FB-SYN-042,EMP-142,HR,WORKLOAD,"Managing performance review cycles alongside annual benefits enrollment has caused excessive overtime.",HR_FORM,2026-04-12T18:30:00Z
+FB-SYN-043,EMP-143,HR,MANAGEMENT,"HR leadership exemplifies empathetic leadership and actively listens to team concerns.",MANAGER_FEEDBACK,2026-04-13T09:00:00Z
+FB-SYN-044,EMP-144,HR,CULTURE,"The HR department models company core values and maintains high mutual trust.",SURVEY,2026-04-14T14:00:00Z
+FB-SYN-045,EMP-145,HR,BENEFITS,"Mental health benefits and subscription to wellness apps demonstrate genuine care for employee health.",SURVEY,2026-04-15T15:30:00Z
+FB-SYN-046,EMP-146,HR,WORKPLACE,"HR information system software requires modernization; several manual spreadsheets could be automated.",SURVEY,2026-04-16T10:15:00Z
+FB-SYN-047,EMP-147,HR,CAREER,"Opportunity to rotate across talent acquisition, people operations, and employee relations has been invaluable.",SURVEY,2026-04-17T16:00:00Z
+FB-SYN-048,EMP-148,HR,MANAGEMENT,"More executive transparency regarding organizational restructuring would help us support employees better.",HR_FORM,2026-04-18T13:20:00Z
+FB-SYN-049,EMP-149,HR,EXIT,"Accepting a People Director role at an organization offering full remote flexibility.",EXIT_FEEDBACK,2026-04-19T11:45:00Z
+FB-SYN-050,EMP-150,HR,WORKLOAD,"Additional HR coordinator headcount is urgently needed to keep up with rapid company hiring pace.",SURVEY,2026-04-20T09:30:00Z
+FB-SYN-051,EMP-151,Customer Support,WORKLOAD,"Ticket volumes surged 40% this month without extra staffing, leading to severe agent stress and fatigue.",SURVEY,2026-04-21T17:15:00Z
+FB-SYN-052,EMP-152,Customer Support,CULTURE,"Support colleagues are like a family; we help each other decompress after difficult customer interactions.",SURVEY,2026-04-22T10:30:00Z
+FB-SYN-053,EMP-153,Customer Support,MANAGEMENT,"Team leads are empathetic and actively jump into queues during critical outages to assist.",MANAGER_FEEDBACK,2026-04-23T11:00:00Z
+FB-SYN-054,EMP-154,Customer Support,COMPENSATION,"Hourly pay and shift differentials are below local technology benchmarks for tier-2 technical support.",HR_FORM,2026-04-24T14:45:00Z
+FB-SYN-055,EMP-155,Customer Support,CAREER,"Clear pathway from support agent to quality assurance or technical account manager is well defined.",SURVEY,2026-04-25T15:20:00Z
+FB-SYN-056,EMP-156,Customer Support,WORKPLACE,"Noise cancellation headsets provided by IT significantly improve focus in our shared office floor.",SURVEY,2026-04-26T09:00:00Z
+FB-SYN-057,EMP-157,Customer Support,BENEFITS,"Flexible shift scheduling allows me to pursue evening university courses effectively.",SURVEY,2026-04-27T12:30:00Z
+FB-SYN-058,EMP-158,Customer Support,ENGAGEMENT,"High CSAT scores this month brought team recognition and gift card awards from our VP.",SURVEY,2026-04-28T16:10:00Z
+FB-SYN-059,EMP-159,Customer Support,MANAGEMENT,"Lack of response from engineering team on recurring software bugs makes customer resolution frustrating.",SURVEY,2026-04-29T13:00:00Z
+FB-SYN-060,EMP-160,Customer Support,EXIT,"Leaving due to ongoing weekend shifts conflicting with personal family commitments.",EXIT_FEEDBACK,2026-04-30T10:00:00Z
+FB-SYN-061,EMP-161,Finance,MANAGEMENT,"Chief Financial Officer provides clear direction and high ethical governance standards.",SURVEY,2026-05-01T11:00:00Z
+FB-SYN-062,EMP-162,Finance,WORKLOAD,"Month-end and quarterly financial closes demand intense 14-hour days with inadequate automated reconciliation tools.",HR_FORM,2026-05-02T19:00:00Z
+FB-SYN-063,EMP-163,Finance,COMPENSATION,"Annual bonuses are fair and accurately reflect company performance and personal audit deliverables.",SURVEY,2026-05-03T09:45:00Z
+FB-SYN-064,EMP-164,Finance,CULTURE,"Finance team has high integrity, accuracy, and mutual respect across all levels.",SURVEY,2026-05-04T14:15:00Z
+FB-SYN-065,EMP-165,Finance,CAREER,"Sponsorship for CPA certification and continuing education credits was fully supported by management.",MANAGER_FEEDBACK,2026-05-05T15:30:00Z
+FB-SYN-066,EMP-166,Finance,WORKPLACE,"Dual monitors and upgraded laptops provided by IT facilitate complex financial modeling.",SURVEY,2026-05-06T10:20:00Z
+FB-SYN-067,EMP-167,Finance,BENEFITS,"401k employer matching percentage is competitive and appreciated.",SURVEY,2026-05-07T13:00:00Z
+FB-SYN-068,EMP-168,Finance,ENGAGEMENT,"Successfully completing our annual external audit with zero material weaknesses was a huge proud achievement.",SURVEY,2026-05-08T16:40:00Z
+FB-SYN-069,EMP-169,Finance,MANAGEMENT,"Siloed communication between revenue ops and accounting creates unnecessary billing reconciliations.",SURVEY,2026-05-09T11:30:00Z
+FB-SYN-070,EMP-170,Finance,EXIT,"Transitioning to an investment banking opportunity with focused private equity deal flow.",EXIT_FEEDBACK,2026-05-10T17:00:00Z
+FB-SYN-071,EMP-171,Operations,WORKLOAD,"Operations team is managing logistics across 5 regional warehouses with obsolete inventory software.",SURVEY,2026-05-11T12:00:00Z
+FB-SYN-072,EMP-172,Operations,CULTURE,"Strong work ethic and reliability define our warehouse and supply chain staff.",SURVEY,2026-05-12T09:15:00Z
+FB-SYN-073,EMP-173,Operations,MANAGEMENT,"Operations directors are present on the warehouse floor and listen directly to frontline workers.",MANAGER_FEEDBACK,2026-05-13T14:00:00Z
+FB-SYN-074,EMP-174,Operations,BENEFITS,"Safety gear allowances and comprehensive health insurance provide peace of mind on the job.",SURVEY,2026-05-14T15:45:00Z
+FB-SYN-075,EMP-175,Operations,CAREER,"Apprentice to shift supervisor advancement program is clear and based on measurable merit.",SURVEY,2026-05-15T10:30:00Z
+FB-SYN-076,EMP-176,Operations,WORKPLACE,"Break rooms are clean, well-stocked with healthy snacks, and offer good resting areas.",SURVEY,2026-05-16T16:20:00Z
+FB-SYN-077,EMP-177,Operations,ENGAGEMENT,"Record-setting on-time shipment rate this month showcases the pride our crews take in their work.",SURVEY,2026-05-17T11:10:00Z
+FB-SYN-078,EMP-178,Operations,WORKLOAD,"Back-to-back mandatory overtime shifts during peak shipping weeks are causing physical strain.",HR_FORM,2026-05-18T18:00:00Z
+FB-SYN-079,EMP-179,Operations,MANAGEMENT,"Changes in freight routing are communicated late by headquarters, creating dispatch bottlenecks.",SURVEY,2026-05-19T13:40:00Z
+FB-SYN-080,EMP-180,Operations,EXIT,"Leaving to work for a local municipal utility offering fixed weekday daytime shifts.",EXIT_FEEDBACK,2026-05-20T10:00:00Z
+FB-SYN-081,EMP-181,Engineering,CULTURE,"Engineering brown-bag knowledge sharing sessions every Friday have been informative and fun.",SURVEY,2026-05-21T12:00:00Z
+FB-SYN-082,EMP-182,Engineering,WORKLOAD,"Legacy code debt is slowing down feature development and making maintenance stressful.",HR_FORM,2026-05-22T14:30:00Z
+FB-SYN-083,EMP-183,Engineering,MANAGEMENT,"Product managers and engineering leads are aligned, leading to very smooth sprint planning.",SURVEY,2026-05-23T10:00:00Z
+FB-SYN-084,EMP-184,Engineering,BENEFITS,"Wellness stipend covers my gym membership and ergonomic chair, which helps my back pain.",SURVEY,2026-05-24T15:00:00Z
+FB-SYN-085,EMP-185,Engineering,CAREER,"Would like more clarity on criteria for promotion from Staff Engineer to Principal Engineer.",MANAGER_FEEDBACK,2026-05-25T11:15:00Z
+FB-SYN-086,EMP-186,Sales,MANAGEMENT,"Weekly sales coaching sessions have helped me close larger enterprise contracts.",SURVEY,2026-05-26T09:30:00Z
+FB-SYN-087,EMP-187,Sales,WORKLOAD,"Excessive administrative data entry in CRM reduces time available for prospecting and client calls.",SURVEY,2026-05-27T16:45:00Z
+FB-SYN-088,EMP-188,Sales,CULTURE,"Great sense of camaraderie across sales reps; people readily share successful pitch decks.",SURVEY,2026-05-28T13:10:00Z
+FB-SYN-089,EMP-189,Product,ENGAGEMENT,"Leading the user experience redesign has been the highlight of my professional career so far.",SURVEY,2026-05-29T10:45:00Z
+FB-SYN-090,EMP-190,Product,WORKLOAD,"Constant context-switching across three different projects is hurting the quality of delivery.",HR_FORM,2026-05-30T17:20:00Z
+FB-SYN-091,EMP-191,Marketing,CULTURE,"Collaborating with the design studio is always inspiring; creative energy is top notch.",SURVEY,2026-06-01T11:00:00Z
+FB-SYN-092,EMP-192,Marketing,MANAGEMENT,"Feedback on copy deliverables is sometimes vague and requires several back-and-forth revisions.",SURVEY,2026-06-02T14:15:00Z
+FB-SYN-093,EMP-193,HR,CULTURE,"Town hall meetings organized by HR have significantly boosted company-wide alignment and enthusiasm.",SURVEY,2026-06-03T10:30:00Z
+FB-SYN-094,EMP-194,HR,WORKPLACE,"HR office layout is open and pleasant, but lacks confidential soundproof rooms for sensitive interviews.",SURVEY,2026-06-04T15:40:00Z
+FB-SYN-095,EMP-195,Customer Support,CULTURE,"Peer recognition program brings a smile to our faces after stressful customer escalations.",SURVEY,2026-06-05T09:20:00Z
+FB-SYN-096,EMP-196,Customer Support,WORKLOAD,"Tired of constantly apologizing to users for software glitches outside our control.",HR_FORM,2026-06-06T18:10:00Z
+FB-SYN-097,EMP-197,Finance,CAREER,"Appreciate financial planning team investing in my advanced financial modeling workshops.",SURVEY,2026-06-07T12:00:00Z
+FB-SYN-098,EMP-198,Finance,WORKLOAD,"Tax season requirements need temporary contractor support to relieve permanent team pressure.",SURVEY,2026-06-08T16:00:00Z
+FB-SYN-099,EMP-199,Operations,BENEFITS,"Commuter transit pass discount makes daily commuting affordable and convenient.",SURVEY,2026-06-09T10:15:00Z
+FB-SYN-100,EMP-200,Operations,WORKLOAD,"Warehouse climate control during summer heat waves needs urgent upgrade for worker safety.",HR_FORM,2026-06-10T14:50:00Z
+FB-SYN-101,EMP-201,Engineering,WORKPLACE,"Continuous integration pipeline builds have become extremely slow, delaying feedback loops.",SURVEY,2026-06-11T11:30:00Z
+FB-SYN-102,EMP-202,Sales,CAREER,"Territory realignment process felt opaque and resulted in unfair quota expectations.",SURVEY,2026-06-12T15:20:00Z
+FB-SYN-103,EMP-203,Product,MANAGEMENT,"Direct communication with executive team about customer pain points has never been better.",MANAGER_FEEDBACK,2026-06-13T09:40:00Z
+FB-SYN-104,EMP-204,Marketing,BENEFITS,"Annual conference attendance allowance enabled me to present our case study on a national stage.",SURVEY,2026-06-14T13:00:00Z
+FB-SYN-105,EMP-205,Customer Support,MANAGEMENT,"Support manager consistently defends team from unfair criticism and values our input.",SURVEY,2026-06-15T16:30:00Z
+FB-SYN-106,EMP-206,Finance,MANAGEMENT,"Budget review feedback was clear, transparent, and respectful of departmental priorities.",SURVEY,2026-06-16T10:00:00Z
+FB-SYN-107,EMP-207,Operations,CULTURE,"Cross-shift handover protocol has reduced misunderstandings and fostered unity.",SURVEY,2026-06-17T12:45:00Z
+FB-SYN-108,EMP-208,HR,BENEFITS,"Employee assistance program counseling services were very helpful during a personal family crisis.",SURVEY,2026-06-18T14:10:00Z
+FB-SYN-109,EMP-209,Engineering,MANAGEMENT,"Tech leads do a fantastic job protecting engineers from meeting fatigue.",SURVEY,2026-06-19T09:15:00Z
+FB-SYN-110,EMP-210,Sales,ENGAGEMENT,"Celebrating closed deals with the bell ringing tradition builds great team energy.",SURVEY,2026-06-20T17:00:00Z

@@ -5,10 +5,10 @@ from beanie import Document, Link
 from .organization import Organization
 
 class User(Document):
-    organization_id: Link[Organization]
+    organization_id: Optional[Link[Organization]] = None
     email: EmailStr
     password_hash: str
-    role: str = "Admin" # Admin, HR Manager, Recruiter, HR Analyst
+    role: str = "ORGANIZATION_ADMIN" # PLATFORM_ADMIN, ORGANIZATION_ADMIN, HR_MANAGER, RECRUITER, HR_ANALYST
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

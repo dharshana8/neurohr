@@ -12,11 +12,22 @@ class RegisterTenantRequest(BaseModel):
     admin_email: EmailStr
     admin_password: str
 
+from typing import Optional
+
 class UserResponse(BaseModel):
     id: str
     email: EmailStr
     role: str
-    organization_id: str
+    organization_id: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    role: str
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None

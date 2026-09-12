@@ -9,9 +9,12 @@ from app.schemas.auth import Token, RegisterTenantRequest
 
 router = APIRouter()
 
+import re
+
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await User.find_one(User.email == form_data.username)
+    cleaned_username = form_data.username.strip().lower()
+    user = await User.find_one({"email": {"$regex": f"^{re.escape(cleaned_username)}$", "$options": "i"}})
     if not user or not security.verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -29,20 +32,22 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.post("/register-tenant")
 async def register_tenant(req: RegisterTenantRequest):
-    # Check if admin email already exists
-    if await User.find_one(User.email == req.admin_email):
+    cleaned_email = req.admin_email.strip().lower()
+    # Check if admin email already exists (case-insensitive)
+    if await User.find_one({"email": {"$regex": f"^{re.escape(cleaned_email)}$", "$options": "i"}}):
         raise HTTPException(status_code=400, detail="User already exists")
 
     # Create Organization
-    org = Organization(name=req.organization_name)
+    org = Organization(name=req.organization_name.strip(), status="ACTIVE", plan_tier="STARTER")
     await org.insert()
 
     # Create Admin User
     user = User(
         organization_id=org,
-        email=req.admin_email,
+        email=cleaned_email,
         password_hash=security.get_password_hash(req.admin_password),
-        role="Admin"
+        role="ORGANIZATION_ADMIN",
+        is_active=True
     )
     await user.insert()
 

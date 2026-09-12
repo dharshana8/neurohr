@@ -46,7 +46,7 @@ DUPLICATE_ID_CSV_CONTENT = (
 async def setup_test_db():
     client = AsyncIOMotorClient(settings.MONGODB_URL)
     await init_beanie(
-        database=client[settings.DATABASE_NAME],
+        database=client["neurohr_test"],
         document_models=[Organization, User, Employee, AttritionPrediction]
     )
 

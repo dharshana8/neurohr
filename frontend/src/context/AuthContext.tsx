@@ -1,17 +1,18 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import axios from 'axios';
+
 
 interface User {
   id: string;
   email: string;
   role: string;
-  organization_id: string;
+  organization_id?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string) => void;
+  login: (token: string) => Promise<User | null>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -26,27 +27,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUser();
+      fetchUser(token);
     } else {
       setIsLoading(false);
     }
   }, [token]);
 
-  const fetchUser = async () => {
+  const fetchUser = async (authToken?: string) => {
+    const currentToken = authToken || token;
+    if (!currentToken) {
+      setIsLoading(false);
+      return null;
+    }
     try {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
       const response = await axios.get('http://localhost:8000/api/v1/users/me');
       setUser(response.data);
+      return response.data;
     } catch (error) {
       console.error('Failed to fetch user', error);
       logout();
+      return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = (newToken: string) => {
+  const login = async (newToken: string): Promise<User | null> => {
+    setIsLoading(true);
     localStorage.setItem('token', newToken);
     setToken(newToken);
+    return await fetchUser(newToken);
   };
 
   const logout = () => {

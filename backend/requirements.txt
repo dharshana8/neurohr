@@ -11,3 +11,8 @@ pandas
 scikit-learn
 xgboost
 shap
+pypdf
+python-docx
+email-validator
+vaderSentiment
+

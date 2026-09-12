@@ -36,3 +36,35 @@ class WorkforceStatsResponse(BaseModel):
     avg_performance: float
     avg_engagement: float
 
+class EmployeeCreate(BaseModel):
+    employee_id: str
+    name: str
+    department: str
+    role: str
+    joining_date: datetime
+    experience: float
+    salary: float
+    performance_score: float
+    engagement_score: float
+    overtime: float
+    skills: str
+    promotion_history: int
+    manager_feedback: str
+    employment_status: str
+    attrition: int = 0
+
+class EmployeeUpdate(BaseModel):
+    name: Optional[str] = None
+    department: Optional[str] = None
+    role: Optional[str] = None
+    joining_date: Optional[datetime] = None
+    experience: Optional[float] = None
+    salary: Optional[float] = None
+    performance_score: Optional[float] = None
+    engagement_score: Optional[float] = None
+    overtime: Optional[float] = None
+    skills: Optional[str] = None
+    promotion_history: Optional[int] = None
+    manager_feedback: Optional[str] = None
+    employment_status: Optional[str] = None
+    attrition: Optional[int] = None

@@ -13,8 +13,11 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "neurohr"
 
+    # xAI Grok API Configuration
+    XAI_API_KEY: str = ""
+    XAI_MODEL: str = "grok-4.6"
+    XAI_BASE_URL: str = "https://api.x.ai/v1"
 
-
-    model_config = SettingsConfigDict(case_sensitive=True)
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
 
 settings = Settings()

@@ -33,3 +33,20 @@ async def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+def require_role(allowed_roles: list[str]):
+    async def role_checker(current_user: User = Depends(get_current_active_user)):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="The user doesn't have enough privileges"
+            )
+        return current_user
+    return role_checker
+
+require_platform_admin = require_role(["PLATFORM_ADMIN"])
+require_organization_admin = require_role(["ORGANIZATION_ADMIN"])
+require_hr_manager = require_role(["ORGANIZATION_ADMIN", "HR_MANAGER"])
+require_recruiter = require_role(["ORGANIZATION_ADMIN", "HR_MANAGER", "RECRUITER"])
+require_hr_analyst = require_role(["ORGANIZATION_ADMIN", "HR_MANAGER", "HR_ANALYST"])
+require_recruitment_write = require_role(["ORGANIZATION_ADMIN", "RECRUITER"])
+require_recruitment_read = require_role(["ORGANIZATION_ADMIN", "HR_MANAGER", "RECRUITER", "HR_ANALYST"])

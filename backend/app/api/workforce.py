@@ -9,8 +9,9 @@ import re
 from app.models.user import User
 from app.models.employee import Employee
 from app.models.attrition import AttritionPrediction
-from app.schemas.workforce import EmployeeResponse, ImportSummaryResponse, WorkforceStatsResponse
-from app.api.deps import get_current_active_user
+from app.schemas.workforce import EmployeeResponse, ImportSummaryResponse, WorkforceStatsResponse, EmployeeCreate, EmployeeUpdate
+from app.api.deps import get_current_active_user, require_hr_manager
+from app.integrations.csv.connector import CSVConnector
 
 router = APIRouter()
 
@@ -26,14 +27,12 @@ async def import_csv(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user)
 ):
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are supported")
-    
-    contents = await file.read()
+    connector = CSVConnector(file=file, user=current_user)
     try:
-        df = pd.read_csv(StringIO(contents.decode('utf-8')))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error parsing CSV: {str(e)}")
+        summary = await connector.sync()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return summary
 
     required_columns = [
         "employee_id", "name", "department", "role", "joining_date",
@@ -151,14 +150,31 @@ async def import_csv(
         except Exception:
             row_errors.append(f"Row {row_num}: Invalid engagement_score")
 
-        # 10. overtime check (numeric)
+        # 10. overtime check (numeric, Yes/No, hours)
         ot_raw = row.get('overtime')
-        try:
-            ot_val = float(ot_raw)
-            if math.isnan(ot_val):
-                row_errors.append(f"Row {row_num}: Invalid overtime")
-        except Exception:
-            row_errors.append(f"Row {row_num}: Invalid overtime")
+        ot_val = 0.0
+        if not (pd.isnull(ot_raw) or ot_raw is None or str(ot_raw).strip() == ''):
+            ot_str = str(ot_raw).strip().lower()
+            if ot_str in ('yes', 'y', 'true', 't', 'overtime'):
+                ot_val = 1.0
+            elif ot_str in ('no', 'n', 'false', 'f', 'none', 'na', 'n/a', '0', '0.0'):
+                ot_val = 0.0
+            else:
+                try:
+                    res = float(ot_str)
+                    if not math.isnan(res):
+                        ot_val = res
+                    else:
+                        row_errors.append(f"Row {row_num}: Invalid overtime")
+                except ValueError:
+                    cleaned_ot = re.sub(r"[^\d.]", "", ot_str)
+                    if cleaned_ot:
+                        try:
+                            ot_val = float(cleaned_ot)
+                        except ValueError:
+                            row_errors.append(f"Row {row_num}: Invalid overtime")
+                    else:
+                        row_errors.append(f"Row {row_num}: Invalid overtime")
 
         # 11. promotion_history check (numeric)
         promo_raw = row.get('promotion_history')
@@ -167,14 +183,24 @@ async def import_csv(
         except Exception:
             row_errors.append(f"Row {row_num}: Invalid promotion_history")
 
-        # 12. attrition check (0 or 1)
+        # 12. attrition check (0 or 1, or Yes/No)
         att_raw = row.get('attrition')
-        try:
-            attrition_val = int(att_raw)
-            if attrition_val not in (0, 1):
-                row_errors.append(f"Row {row_num}: Invalid attrition")
-        except Exception:
-            row_errors.append(f"Row {row_num}: Invalid attrition")
+        attrition_val = 0
+        if not (pd.isnull(att_raw) or att_raw is None or str(att_raw).strip() == ''):
+            att_str = str(att_raw).strip().lower()
+            if att_str in ('1', 'yes', 'y', 'true', 't'):
+                attrition_val = 1
+            elif att_str in ('0', 'no', 'n', 'false', 'f'):
+                attrition_val = 0
+            else:
+                try:
+                    val = int(float(att_str))
+                    if val in (0, 1):
+                        attrition_val = val
+                    else:
+                        row_errors.append(f"Row {row_num}: Invalid attrition")
+                except Exception:
+                    row_errors.append(f"Row {row_num}: Invalid attrition")
 
         if row_errors:
             errors.extend(row_errors)
@@ -321,5 +347,102 @@ async def get_stats(current_user: User = Depends(get_current_active_user)):
         avg_engagement=round(avg_eng, 2)
     )
 
+@router.post("/employees", response_model=EmployeeResponse)
+async def create_employee(
+    req: EmployeeCreate,
+    current_user: User = Depends(require_hr_manager)
+):
+    org_id = get_org_id(current_user.organization_id)
+    org_ref = current_user.organization_id.to_ref() if hasattr(current_user.organization_id, "to_ref") else current_user.organization_id
+    
+    # Check duplicate
+    existing = await Employee.find_one({"organization_id.$id": org_id}, Employee.employee_id == req.employee_id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Employee ID already exists")
 
+    emp = Employee(
+        organization_id=org_ref,
+        employee_id=req.employee_id,
+        name=req.name,
+        department=req.department,
+        role=req.role,
+        joining_date=req.joining_date,
+        experience=req.experience,
+        salary=req.salary,
+        performance_score=req.performance_score,
+        engagement_score=req.engagement_score,
+        overtime=req.overtime,
+        skills=req.skills,
+        promotion_history=req.promotion_history,
+        manager_feedback=req.manager_feedback,
+        employment_status=req.employment_status,
+        attrition=req.attrition
+    )
+    await emp.insert()
+    
+    return EmployeeResponse(
+        id=str(emp.id),
+        employee_id=emp.employee_id,
+        name=emp.name,
+        department=emp.department,
+        role=emp.role,
+        joining_date=emp.joining_date,
+        experience=emp.experience,
+        salary=emp.salary,
+        performance_score=emp.performance_score,
+        engagement_score=emp.engagement_score,
+        overtime=emp.overtime,
+        skills=emp.skills,
+        promotion_history=emp.promotion_history,
+        manager_feedback=emp.manager_feedback,
+        employment_status=emp.employment_status,
+        attrition=emp.attrition
+    )
 
+@router.put("/employees/{employee_id}", response_model=EmployeeResponse)
+async def update_employee(
+    employee_id: str,
+    req: EmployeeUpdate,
+    current_user: User = Depends(require_hr_manager)
+):
+    org_id = get_org_id(current_user.organization_id)
+    emp = await Employee.find_one({"organization_id.$id": org_id}, Employee.employee_id == employee_id)
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    update_data = req.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(emp, key, value)
+        
+    await emp.save()
+    return EmployeeResponse(
+        id=str(emp.id),
+        employee_id=emp.employee_id,
+        name=emp.name,
+        department=emp.department,
+        role=emp.role,
+        joining_date=emp.joining_date,
+        experience=emp.experience,
+        salary=emp.salary,
+        performance_score=emp.performance_score,
+        engagement_score=emp.engagement_score,
+        overtime=emp.overtime,
+        skills=emp.skills,
+        promotion_history=emp.promotion_history,
+        manager_feedback=emp.manager_feedback,
+        employment_status=emp.employment_status,
+        attrition=emp.attrition
+    )
+
+@router.delete("/employees/{employee_id}")
+async def delete_employee(
+    employee_id: str,
+    current_user: User = Depends(require_hr_manager)
+):
+    org_id = get_org_id(current_user.organization_id)
+    emp = await Employee.find_one({"organization_id.$id": org_id}, Employee.employee_id == employee_id)
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+        
+    await emp.delete()
+    return {"message": "Employee deleted successfully"}

@@ -22,6 +22,7 @@ def get_org_id(org_link):
 class SinglePredictionResponse(BaseModel):
     employee_id: str
     probability: float
+    risk_score: Optional[float] = None
     risk_level: str
     model_version: str
     prediction_date: datetime
@@ -72,6 +73,7 @@ async def predict_single(
     return SinglePredictionResponse(
         employee_id=pred_doc.employee_id,
         probability=pred_doc.probability,
+        risk_score=pred_doc.probability,
         risk_level=pred_doc.risk_level,
         model_version=pred_doc.model_version,
         prediction_date=pred_doc.prediction_date,
