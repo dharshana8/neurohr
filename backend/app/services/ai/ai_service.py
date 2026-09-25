@@ -319,6 +319,30 @@ class AIService:
 
         factors_text = "\n".join(f"- {f.get('feature')}: {f.get('description', f.get('impact'))}" for f in factors)
 
+        # Build structured factor lists for UI SHAP cards
+        top_risk_factors = []
+        protective_factors = []
+        for f in factors:
+            feat_title = f.get("feature", "Factor").replace("_", " ").title()
+            impact_raw = f.get("impact", "")
+            shap_val = f.get("shap_value")
+
+            if isinstance(shap_val, (int, float)):
+                impact_display = f"{abs(shap_val):.2f}"
+            else:
+                impact_display = "High" if impact_raw == "negative" else "Low"
+
+            factor_item = {
+                "factor": feat_title,
+                "impact": impact_display,
+                "description": f.get("description", "")
+            }
+
+            if impact_raw == "negative" or (isinstance(shap_val, (int, float)) and shap_val > 0):
+                top_risk_factors.append(factor_item)
+            else:
+                protective_factors.append(factor_item)
+
         # 2. Generate explanation with Grok or fallback
         if not grok_client.is_configured:
             fallback_explanation = (
@@ -329,8 +353,12 @@ class AIService:
                 employee_id=employee_id,
                 risk_level=risk_level,
                 risk_score=risk_score,
+                probability=risk_score,
                 model_factors=factors,
+                top_risk_factors=top_risk_factors,
+                protective_factors=protective_factors,
                 ai_explanation=fallback_explanation,
+                ai_narrative=fallback_explanation,
                 is_ai_assisted=False,
                 disclaimer="Deterministic model factor summary (Grok unconfigured)."
             )
@@ -351,8 +379,12 @@ class AIService:
             employee_id=employee_id,
             risk_level=risk_level,
             risk_score=risk_score,
+            probability=risk_score,
             model_factors=factors,
+            top_risk_factors=top_risk_factors,
+            protective_factors=protective_factors,
             ai_explanation=ai_explanation,
+            ai_narrative=ai_explanation,
             is_ai_assisted=True
         )
 

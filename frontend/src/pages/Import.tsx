@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { UploadCloud, CheckCircle, AlertCircle, FileText, X } from 'lucide-react';
+import { UploadCloud, CheckCircle, AlertCircle, FileText, X, Trash2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface CSVPreviewData {
@@ -18,7 +18,42 @@ export default function Import() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearMessage, setClearMessage] = useState('');
   const navigate = useNavigate();
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/v1/workforce/stats');
+      setTotalCount(res.data.total_employees);
+    } catch {
+      // ignore
+    }
+  };
+
+  React.useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const handleClearAllData = async () => {
+    try {
+      setIsProcessing(true);
+      setError('');
+      setClearMessage('');
+      const res = await axios.delete('http://localhost:8000/api/v1/workforce/clear-data');
+      setClearMessage(res.data.message || 'All workforce records wiped successfully.');
+      setShowClearConfirm(false);
+      setResult(null);
+      setFile(null);
+      setPreview(null);
+      fetchStats();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to clear workforce data');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const parseCSVClientSide = (fileContent: string, selectedFile: File) => {
     const lines = fileContent.split(/\r\n|\n/).filter(line => line.trim().length > 0);
@@ -267,6 +302,63 @@ export default function Import() {
           </div>
         )}
       </div>
+
+      {/* Workforce Data Management Card */}
+      <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Trash2 className="w-4 h-4 text-red-500" />
+            Workforce Data Lifecycle & Removal
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Current database state: <span className="font-semibold text-gray-800 dark:text-gray-200">{totalCount !== null ? `${totalCount} employees stored` : 'Loading...'}</span>.
+            Need to start fresh or remove imported test records?
+          </p>
+          {clearMessage && (
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+              ✓ {clearMessage}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => setShowClearConfirm(true)}
+          disabled={isProcessing || totalCount === 0}
+          className="px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 disabled:opacity-40"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Wipe / Clear All Records
+        </button>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-gray-100 dark:border-gray-800 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">Wipe All Workforce Data?</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              This action will permanently delete all {totalCount || 0} imported employee profiles and their associated attrition risk predictions. This cannot be undone.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 py-2 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearAllData}
+                disabled={isProcessing}
+                className="flex-1 py-2 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs transition flex items-center justify-center gap-1"
+              >
+                {isProcessing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Confirm Wipe'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

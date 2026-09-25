@@ -221,6 +221,22 @@ async def list_policies(
         ) for d in docs
     ]
 
+@router.delete("/policies/{document_id}")
+async def delete_policy(
+    document_id: str,
+    current_user: User = Depends(require_hr_manager)
+):
+    """Delete an HR policy document and purge its chunks from the RAG knowledge index."""
+    org_id = get_org_id(current_user.organization_id)
+    doc = await HRPolicyDocument.find_one({
+        "document_id": document_id,
+        "organization_id.$id": org_id
+    })
+    if not doc:
+        raise HTTPException(status_code=404, detail="Policy document not found")
+    await doc.delete()
+    return {"message": "Policy document removed successfully"}
+
 @router.post("/policies/query", response_model=PolicyQueryResponse)
 async def query_policy(
     req: PolicyQueryRequest,

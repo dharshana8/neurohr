@@ -39,8 +39,12 @@ class AttritionExplainResponse(BaseModel):
     employee_id: str
     risk_level: str
     risk_score: float
-    model_factors: List[Dict[str, Any]]
+    probability: Optional[float] = None
+    model_factors: List[Dict[str, Any]] = Field(default_factory=list)
+    top_risk_factors: Optional[List[Dict[str, Any]]] = None
+    protective_factors: Optional[List[Dict[str, Any]]] = None
     ai_explanation: str
+    ai_narrative: Optional[str] = None
     is_ai_assisted: bool = True
     disclaimer: str = "AI-generated explanation based strictly on model SHAP factors. Does not replace human management evaluation."
 

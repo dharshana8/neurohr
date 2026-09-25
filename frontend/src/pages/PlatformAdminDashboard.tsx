@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   LogOut, Building2, Plus, Copy, Check, Users, Search, 
   RefreshCw, Key, Shield, Eye, EyeOff, AlertCircle,
-  Activity, Sparkles, Zap, BarChart3, Lock, CheckCircle2,
+  Activity, Sparkles, Zap, Lock, CheckCircle2,
   TrendingUp, Layers, Server, Briefcase, MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

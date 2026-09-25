@@ -434,6 +434,18 @@ async def update_employee(
         attrition=emp.attrition
     )
 
+@router.delete("/clear-data")
+async def clear_workforce_data(
+    current_user: User = Depends(require_hr_manager)
+):
+    """Wipe all imported workforce employee profiles and attrition predictions for tenant."""
+    org_id = get_org_id(current_user.organization_id)
+    employees = await Employee.find({"organization_id.$id": org_id}).to_list()
+    count = len(employees)
+    await AttritionPrediction.find({"organization_id.$id": org_id}).delete()
+    await Employee.find({"organization_id.$id": org_id}).delete()
+    return {"message": f"Successfully deleted all {count} workforce employee records", "count": count}
+
 @router.delete("/employees/{employee_id}")
 async def delete_employee(
     employee_id: str,
@@ -443,6 +455,12 @@ async def delete_employee(
     emp = await Employee.find_one({"organization_id.$id": org_id}, Employee.employee_id == employee_id)
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
-        
+
+    # Also clean up any attrition prediction record
+    await AttritionPrediction.find({
+        "organization_id.$id": org_id,
+        "employee_id": employee_id
+    }).delete()
+
     await emp.delete()
-    return {"message": "Employee deleted successfully"}
+    return {"message": f"Employee {employee_id} deleted successfully"}

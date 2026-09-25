@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Search, Upload, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { Search, Upload, ChevronLeft, ChevronRight, SlidersHorizontal, Trash2, AlertTriangle } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -70,6 +70,9 @@ export default function EmployeeDirectory() {
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedRole, setSelectedRole] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteNotification, setDeleteNotification] = useState<string | null>(null);
   const itemsPerPage = 12;
   const navigate = useNavigate();
 
@@ -93,6 +96,22 @@ export default function EmployeeDirectory() {
   };
 
   useEffect(() => { fetchEmployees(); }, [searchTerm, selectedDept, selectedRole]);
+
+  const handleDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+    setIsDeleting(true);
+    try {
+      await axios.delete(`http://localhost:8000/api/v1/workforce/employees/${employeeToDelete.employee_id}`);
+      setEmployees(prev => prev.filter(e => e.employee_id !== employeeToDelete.employee_id));
+      setDeleteNotification(`Successfully removed ${employeeToDelete.name} (${employeeToDelete.employee_id})`);
+      setTimeout(() => setDeleteNotification(null), 4000);
+      setEmployeeToDelete(null);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to remove employee record.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const departments = ['All', ...Array.from(new Set(employees.map(e => e.department))).filter(Boolean).sort()];
   const roles = ['All', ...Array.from(new Set(employees.map(e => e.role))).filter(Boolean).sort()];
@@ -140,6 +159,14 @@ export default function EmployeeDirectory() {
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto page-enter">
+      {/* Delete Feedback Toast */}
+      {deleteNotification && (
+        <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm flex items-center justify-between">
+          <span>{deleteNotification}</span>
+          <button onClick={() => setDeleteNotification(null)} className="text-emerald-500 font-bold ml-4">✕</button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
@@ -153,7 +180,7 @@ export default function EmployeeDirectory() {
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-indigo-500/20 transition-all"
         >
           <Upload className="w-4 h-4" />
-          Import More
+          Import More / Manage
         </button>
       </div>
 
@@ -209,12 +236,13 @@ export default function EmployeeDirectory() {
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Performance</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Engagement</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm">
                     No employees match your search criteria.
                   </td>
                 </tr>
@@ -252,6 +280,18 @@ export default function EmployeeDirectory() {
                     <td className="px-6 py-4">
                       <StatusBadge status={emp.employment_status} />
                     </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEmployeeToDelete(emp);
+                        }}
+                        title="Delete employee record"
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -285,6 +325,49 @@ export default function EmployeeDirectory() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {employeeToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete Employee Record</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Irreversible workforce removal</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Are you sure you want to permanently remove employee <strong className="text-gray-900 dark:text-white">{employeeToDelete.name}</strong> (<code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{employeeToDelete.employee_id}</code>)?
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl">
+              This action will also cascade-delete their predictive attrition history and AI metrics.
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEmployeeToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteEmployee}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

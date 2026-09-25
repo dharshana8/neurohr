@@ -337,6 +337,34 @@ async def update_feedback(
     )
 
 
+@router.delete("/feedback/actions/clear-all")
+async def clear_all_feedback(
+    current_user: User = Depends(require_hr_manager)
+):
+    """Delete all feedback records and associated sentiment results for the organization."""
+    check_tenant_access(current_user)
+    org_id = get_org_id(current_user.organization_id)
+    org_ref = current_user.organization_id.to_ref() if hasattr(current_user.organization_id, "to_ref") else current_user.organization_id
+    user_ref = current_user.to_ref() if hasattr(current_user, "to_ref") else current_user
+
+    feedbacks = await EmployeeFeedback.find({"organization_id.$id": org_id}).to_list()
+    count = len(feedbacks)
+
+    await SentimentResult.find({"organization_id.$id": org_id}).delete()
+    await EmployeeFeedback.find({"organization_id.$id": org_id}).delete()
+
+    await AuditLog(
+        user_id=user_ref,
+        organization_id=org_ref,
+        action="FEEDBACK_ALL_CLEARED",
+        resource_type="EmployeeFeedback",
+        resource_id=f"count:{count}",
+        status="SUCCESS"
+    ).insert()
+
+    return {"message": f"Successfully deleted all {count} feedback records", "count": count}
+
+
 @router.delete("/feedback/{feedback_id}")
 async def delete_feedback(
     feedback_id: str,

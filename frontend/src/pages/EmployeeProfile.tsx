@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { UserCircle, Briefcase, TrendingUp, AlertTriangle, ArrowLeft, Brain, Sparkles } from 'lucide-react';
+import { UserCircle, Briefcase, TrendingUp, AlertTriangle, ArrowLeft, Brain, Sparkles, Trash2 } from 'lucide-react';
 
 interface SHAPFactor {
   feature: string;
@@ -24,6 +24,8 @@ export default function EmployeeProfile() {
   const [explanation, setExplanation] = useState<ExplanationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPredicting, setIsPredicting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -70,6 +72,19 @@ export default function EmployeeProfile() {
     }
   };
 
+  const handleDeleteEmployee = async () => {
+    if (!employeeId) return;
+    setIsDeleting(true);
+    try {
+      await axios.delete(`http://localhost:8000/api/v1/workforce/employees/${employeeId}`);
+      navigate('/dashboard/workforce/employees');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to remove employee record.');
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading employee profile...</div>;
   if (error || !employee) {
     return (
@@ -108,14 +123,25 @@ export default function EmployeeProfile() {
           </div>
         </div>
 
-        <button
-          onClick={handleRunPrediction}
-          disabled={isPredicting}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium shadow-sm flex items-center disabled:opacity-50"
-        >
-          <Brain className="w-4 h-4 mr-2" />
-          {isPredicting ? 'Running AI Model...' : 'Calculate Attrition Risk'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            disabled={isDeleting}
+            className="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            title="Delete employee record"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Record
+          </button>
+          <button
+            onClick={handleRunPrediction}
+            disabled={isPredicting}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium shadow-sm flex items-center disabled:opacity-50"
+          >
+            <Brain className="w-4 h-4 mr-2" />
+            {isPredicting ? 'Running AI Model...' : 'Calculate Attrition Risk'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -268,6 +294,49 @@ export default function EmployeeProfile() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete Employee Record</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Irreversible workforce removal</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete employee <strong className="text-gray-900 dark:text-white">{employee.name}</strong> (<code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{employee.employee_id}</code>)?
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl">
+              This will remove the employee from your directory and clear all their predictive attrition analytics and SHAP scores.
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteEmployee}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

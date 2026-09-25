@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 
 from app.models.user import User
 from app.models.candidate import Candidate
+from app.models.match import CandidateMatch
 from app.schemas.recruitment import CandidateResponse, CandidateCreate, CandidateUpdate, CandidateStatusUpdate
 from app.api.deps import require_recruitment_read, require_recruitment_write
 from app.recruitment.resume_parser.parser import extract_text_from_file, parse_resume_text
@@ -334,6 +335,26 @@ async def update_candidate(
         updated_at=candidate.updated_at
     )
 
+@router.delete("/actions/clear-all")
+async def clear_all_candidates(
+    current_user: User = Depends(require_recruitment_write)
+):
+    """Delete all candidate profiles, match ratings, and resume files for the tenant."""
+    org_id = get_org_id(current_user.organization_id)
+    candidates = await Candidate.find({"organization_id.$id": org_id}).to_list()
+    count = len(candidates)
+    for candidate in candidates:
+        if candidate.resume_file:
+            file_path = os.path.join(UPLOAD_DIR, candidate.resume_file)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+        await CandidateMatch.find({"candidate_id": candidate.candidate_id}).delete()
+        await candidate.delete()
+    return {"message": f"Successfully removed {count} candidate profiles and files", "count": count}
+
 @router.delete("/{candidate_id}")
 async def delete_candidate(
     candidate_id: str,
@@ -344,8 +365,19 @@ async def delete_candidate(
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
 
+    # Remove stored resume file from disk
+    if candidate.resume_file:
+        file_path = os.path.join(UPLOAD_DIR, candidate.resume_file)
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+
+    # Clean up associated candidate matching ratings
+    await CandidateMatch.find({"candidate_id": candidate_id}).delete()
     await candidate.delete()
-    return {"message": "Candidate deleted successfully"}
+    return {"message": "Candidate and resume file deleted successfully"}
 
 @router.post("/{candidate_id}/status", response_model=CandidateResponse)
 async def update_candidate_status(
