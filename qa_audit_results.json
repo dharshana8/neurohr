@@ -1,0 +1,230 @@
+{
+  "passes": [
+    {
+      "phase": "ENV",
+      "id": "ENV-01",
+      "desc": "Frontend starts and serves HTML on port 5173",
+      "details": "HTTP 200"
+    },
+    {
+      "phase": "ENV",
+      "id": "ENV-02",
+      "desc": "Backend health endpoint responds on port 8000",
+      "details": "{\"message\":\"Welcome to NeuroHR X API\"}"
+    },
+    {
+      "phase": "PHASE 1",
+      "id": "AUTH-01",
+      "desc": "Tenant registration creates organization and admin",
+      "details": "{\"message\":\"Tenant registered successfully\",\"organization_id\":\"6aa4d78a7bd987131550a5f4\"}"
+    },
+    {
+      "phase": "PHASE 1",
+      "id": "AUTH-02",
+      "desc": "Login with valid credentials returns JWT",
+      "details": "access_token received"
+    },
+    {
+      "phase": "PHASE 1",
+      "id": "AUTH-03",
+      "desc": "Login with invalid credentials returns 401 Unauthorized",
+      "details": "{\"detail\":\"Incorrect email or password\"}"
+    },
+    {
+      "phase": "PHASE 1",
+      "id": "AUTH-04",
+      "desc": "Login with missing credentials rejected with 422/400",
+      "details": "Status: 422"
+    },
+    {
+      "phase": "PHASE 1",
+      "id": "AUTH-05",
+      "desc": "Invalid JWT rejected with 403 Forbidden",
+      "details": "{\"detail\":\"Could not validate credentials\"}"
+    },
+    {
+      "phase": "PHASE 1",
+      "id": "AUTH-06",
+      "desc": "Protected route without auth returns 401/403",
+      "details": "Status: 401"
+    },
+    {
+      "phase": "PHASE 1",
+      "id": "AUTH-07",
+      "desc": "Authenticated user accesses /users/me",
+      "details": "User: qa_admin_a_1789187978@acme.com, Role: ORGANIZATION_ADMIN"
+    },
+    {
+      "phase": "PHASE 2",
+      "id": "EMP-01",
+      "desc": "Create employee via API",
+      "details": "Created: EMP-QA-1789187978"
+    },
+    {
+      "phase": "PHASE 2",
+      "id": "EMP-02",
+      "desc": "Read employee by ID",
+      "details": "Jane QA Engineer"
+    },
+    {
+      "phase": "PHASE 2",
+      "id": "EMP-03",
+      "desc": "List employees includes newly created employee",
+      "details": "Count: 1"
+    },
+    {
+      "phase": "PHASE 2",
+      "id": "EMP-04",
+      "desc": "Update employee salary",
+      "details": "New salary: 125000.0"
+    },
+    {
+      "phase": "PHASE 2",
+      "id": "EMP-05",
+      "desc": "Duplicate employee_id returns 400 Bad Request",
+      "details": "{\"detail\":\"Employee ID already exists\"}"
+    },
+    {
+      "phase": "PHASE 2",
+      "id": "CSV-01",
+      "desc": "Valid CSV employee upload parsed & persisted",
+      "details": "{'total_rows': 2, 'valid_rows': 2, 'invalid_rows': 0, 'imported_rows': 2, 'errors': []}"
+    },
+    {
+      "phase": "PHASE 2",
+      "id": "CSV-02",
+      "desc": "Invalid CSV missing required columns returns 400",
+      "details": "{\"detail\":\"Missing required CSV columns: ['department', 'role', 'joining_date', 'experience', 'salary', 'performance_score', 'engagement_score', 'overtime', 'skills', 'promotion_history', 'manager_feedback', 'employment_status', 'attrition']\"}"
+    },
+    {
+      "phase": "PHASE 3",
+      "id": "TENANT-01",
+      "desc": "Org B admin cannot access Org A employee record (Tenant Isolation)",
+      "details": "Status: 404"
+    },
+    {
+      "phase": "PHASE 3",
+      "id": "TENANT-02",
+      "desc": "Org B employee list isolated from Org A",
+      "details": "Org B count: 0"
+    },
+    {
+      "phase": "PHASE 3",
+      "id": "RBAC-01",
+      "desc": "Recruiter role blocked from workforce employee mutation (403 Forbidden)",
+      "details": "{\"detail\":\"The user doesn't have enough privileges\"}"
+    },
+    {
+      "phase": "PHASE 5",
+      "id": "ATS-01",
+      "desc": "Recruiter creates job opening",
+      "details": "Job ID: JOB-A0CB99"
+    },
+    {
+      "phase": "PHASE 5",
+      "id": "ATS-02",
+      "desc": "Recruiter creates candidate profile",
+      "details": "Candidate ID: CAND-8D8722"
+    },
+    {
+      "phase": "PHASE 5",
+      "id": "ATS-03",
+      "desc": "Dynamic candidate-job match calculation",
+      "details": "Score: 78.9%, Matched: ['Python', 'Pytest', 'Selenium', 'Docker']"
+    },
+    {
+      "phase": "PHASE 5",
+      "id": "ATS-04",
+      "desc": "Cross-tenant job access denied",
+      "details": "Status: 404"
+    },
+    {
+      "phase": "PHASE 6",
+      "id": "SKILL-01",
+      "desc": "Create skill in taxonomy",
+      "details": "Skill: End-to-End Automation 1789187978"
+    },
+    {
+      "phase": "PHASE 6",
+      "id": "SKILL-02",
+      "desc": "Create role skill requirement",
+      "details": "Principal QA Architect 1789187978"
+    },
+    {
+      "phase": "PHASE 6",
+      "id": "SKILL-03",
+      "desc": "Dynamic skill gap analysis computed",
+      "details": "Coverage: 50.0%, Matched: 2, Missing: 4"
+    },
+    {
+      "phase": "PHASE 6",
+      "id": "CAREER-01",
+      "desc": "Career path recommendation plan generated",
+      "details": "Milestones: 4, Recommended Actions: 5"
+    },
+    {
+      "phase": "PHASE 7",
+      "id": "SENT-01",
+      "desc": "Submit employee feedback & automatic sentiment scoring",
+      "details": "ID: 188ee936-fbd8-4ec2-a7f3-680e293afa54, Sentiment: NEGATIVE"
+    },
+    {
+      "phase": "PHASE 7",
+      "id": "SENT-02",
+      "desc": "Batch analyze all feedbacks for organization",
+      "details": "{'total_evaluated': 1, 'analyzed_count': 0, 'skipped_count': 1, 'sentiment_counts': {'POSITIVE': 0, 'NEUTRAL': 0, 'NEGATIVE': 1}}"
+    },
+    {
+      "phase": "PHASE 7",
+      "id": "SENT-03",
+      "desc": "Department sentiment aggregation from MongoDB records",
+      "details": "Total: 1, Depts: 1"
+    },
+    {
+      "phase": "PHASE 7",
+      "id": "SENT-04",
+      "desc": "Theme extraction taxonomy",
+      "details": "Top theme: Workload (1 mentions)"
+    },
+    {
+      "phase": "PHASE 7",
+      "id": "SENT-05",
+      "desc": "Grok/Fallback AI executive insight generated",
+      "details": "Insight: Overall workplace sentiment is predominantly negative (100.0% positive, 0.0% neu..."
+    },
+    {
+      "phase": "PHASE 7",
+      "id": "PRIV-01",
+      "desc": "Employee ID masked for HR_ANALYST role in feedback API",
+      "details": "employee_id: null"
+    },
+    {
+      "phase": "PHASE 7",
+      "id": "PRIV-02",
+      "desc": "Recruiter role blocked from employee sentiment data (403 Forbidden)",
+      "details": "{\"detail\":\"The user doesn't have enough privileges\"}"
+    }
+  ],
+  "warnings": [],
+  "fails": [
+    {
+      "phase": "PHASE 2",
+      "id": "ATTR-01",
+      "desc": "Attrition prediction",
+      "error": "{\"employee_id\":\"EMP-QA-1789187978\",\"probability\":0.1546,\"risk_level\":\"LOW\",\"model_version\":\"demo-v1\",\"prediction_date\":\"2026-09-12T04:39:44.960842Z\",\"top_factors\":{\"available\":false,\"error\":\"Explanation unavailable: only 0-dimensional arrays can be converted to Python scalars\",\"top_factors\":[]}}",
+      "steps": "",
+      "root_cause": "",
+      "location": ""
+    },
+    {
+      "phase": "PHASE 4",
+      "id": "INT-01",
+      "desc": "Create integration connector",
+      "error": "Internal Server Error",
+      "steps": "",
+      "root_cause": "",
+      "location": ""
+    }
+  ],
+  "not_testable": []
+}

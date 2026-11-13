@@ -1,0 +1,7 @@
+employee_id,name,department,role,joining_date,experience,salary,performance_score,engagement_score,overtime,skills,promotion_history,manager_feedback,employment_status,attrition
+EMP001,John Doe,Engineering,Software Engineer,2021-01-15,3.5,85000,4.2,4.5,5,Python;React,1,Great performer,Active,0
+EMP002,Jane Smith,Engineering,Senior Engineer,2019-03-10,5.0,110000,4.8,4.0,2,Java;AWS,2,Excellent leadership,Active,0
+EMP003,Bob Wilson,Sales,Account Executive,2022-06-01,1.5,60000,2.5,2.1,15,Salesforce,0,Struggling with targets,Active,1
+EMP004,Alice Brown,HR,HR Manager,2018-11-20,6.0,90000,4.0,4.2,0,Recruiting;Workday,1,Steady and reliable,Active,0
+EMP005,Charlie Davis,Engineering,Software Engineer,2023-01-10,0.5,75000,3.0,2.5,20,Python,0,Needs improvement,Active,1
+EMP006,Eve White,Marketing,Marketing Specialist,2021-08-05,2.0,65000,3.8,3.9,5,SEO;Content,1,Creative,Active,0

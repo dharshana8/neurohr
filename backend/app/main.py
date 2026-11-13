@@ -1,14 +1,34 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.database import init_db, mongo_sync_init
 from app.api.v1 import auth, workforce, hris, erp, ai, evaluation, intelligence, talent, attrition, platform_admin
+from app.api.integrations.router import router as integrations_router
+from app.recruitment.router import router as recruitment_router
+from app.api.sentiment.router import router as sentiment_router
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize Beanie Document Models if MongoDB is running
+    try:
+        await init_db()
+    except Exception as e:
+        pass
+    # Initialize Real MongoDB sync for enterprise workforce & collections
+    try:
+        mongo_sync_init()
+    except Exception as e:
+        pass
+    yield
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS configuration
@@ -17,6 +37,8 @@ origins = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
     "*"
 ]
 
@@ -41,6 +63,9 @@ app.include_router(attrition.router, prefix=f"{settings.API_V1_STR}/attrition", 
 app.include_router(attrition.router, prefix=f"{settings.API_V1_STR}/ai/explain", tags=["AI Explainability"])
 app.include_router(platform_admin.router, prefix=f"{settings.API_V1_STR}/platform-admin", tags=["Platform SuperAdmin"])
 app.include_router(talent.router, prefix=f"{settings.API_V1_STR}", tags=["Talent & Recruitment"]) # for /jobs, /candidates
+app.include_router(integrations_router, prefix=f"{settings.API_V1_STR}/integrations", tags=["Integrations"])
+app.include_router(recruitment_router, prefix=f"{settings.API_V1_STR}/recruitment", tags=["Recruitment"])
+app.include_router(sentiment_router, prefix=f"{settings.API_V1_STR}/sentiment", tags=["Sentiment"])
 
 @app.get("/")
 def root():
@@ -54,4 +79,3 @@ def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-

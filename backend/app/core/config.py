@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "NeuroHR X - Enterprise HRIS & ERP Intelligence"
@@ -11,9 +11,11 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "neurohr"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
-        case_sensitive = True
+    # xAI Grok API Configuration
+    XAI_API_KEY: str = ""
+    XAI_MODEL: str = "grok-4.6"
+    XAI_BASE_URL: str = "https://api.x.ai/v1"
+
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
 
 settings = Settings()
