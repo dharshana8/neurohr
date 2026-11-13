@@ -1,4 +1,4 @@
-from app.services.ai.grok_client import grok_client, GrokClient
+from app.services.ai.grok_client import grok_client, GrokClient, gemini_client, GeminiClient
 from app.services.ai.ai_service import AIService
 from app.services.ai.policy_rag import PolicyRAGService
 from app.services.ai.exceptions import (
@@ -10,6 +10,8 @@ from app.services.ai.exceptions import (
 )
 
 __all__ = [
+    "gemini_client",
+    "GeminiClient",
     "grok_client",
     "GrokClient",
     "AIService",

@@ -136,7 +136,7 @@ RAW_NAMES_AND_ROLES = [
     ("Karthik Raja", "Engineering", "Backend Infrastructure Engineer", 2200000, 3.1, 4.2, 3.2, 22, "Bench / Available Talent Pool", 0),
     ("Alex Chen", "Engineering", "DevOps & SRE Lead", 2800000, 4.5, 4.6, 3.9, 14, "Project Titan (Cloud Modernization)", 90),
     ("Emily Watson", "Engineering", "Lead Frontend Architect", 2600000, 3.9, 4.7, 4.3, 12, "Next-Gen ERP Portal", 100),
-    ("Vikram Malhotra", "Engineering", "Senior Data Engineer", 2500000, 2.9, 4.1, 2.5, 34, "FinTech Core Banking API", 90),
+    ("Vikram Malhotra", "Engineering", "Senior Data Engineer", 2500000, 3.5, 3.8, 2.2, 36, "FinTech Core Banking API", 90),
     ("Jessica Taylor", "Engineering", "Full-Stack Software Engineer", 1800000, 1.8, 4.3, 4.1, 8, "Next-Gen ERP Portal", 95),
     ("Robert Chen", "Engineering", "Senior Security Engineer", 2700000, 4.8, 4.5, 4.0, 15, "Project Titan (Cloud Modernization)", 85),
     ("Ananya Roy", "Engineering", "Data Scientist - NLP", 2450000, 2.2, 4.6, 4.4, 10, "Autonomous AI HR Agent Core", 100),
@@ -203,38 +203,18 @@ RAW_NAMES_AND_ROLES = [
 ]
 
 def build_enterprise_employees():
+    from app.ml.attrition.service import attrition_service
     employees = []
     for idx, (name, dept, role, salary, tenure, perf, eng, overtime, project, bill) in enumerate(RAW_NAMES_AND_ROLES):
         emp_id = f"EMP-{101 + idx}"
         clean_email = f"{name.lower().replace(' ', '.')}@acme.com"
         
-        # Ground truth risk probability calculated by logistic formula
-        score = 0.0
-        if eng < 2.5:
-            score += 0.45
-        elif eng < 3.2:
-            score += 0.25
-        elif eng > 4.2:
-            score -= 0.20
-
-        if overtime > 30:
-            score += 0.35
-        elif overtime > 20:
-            score += 0.18
-
-        if perf < 3.5:
-            score += 0.15
-        elif perf > 4.5:
-            score -= 0.12
-
-        if salary < 1500000:
-            score += 0.10
-        elif salary > 3000000:
-            score -= 0.12
-
-        base_risk = max(0.08, min(0.92, 0.25 + score))
-        risk_level = "HIGH" if base_risk >= 0.70 else "MEDIUM" if base_risk >= 0.35 else "LOW"
-        driver = "Workplace Burnout & Sprint Fatigue" if overtime > 25 else "Engagement & Career Alignment" if eng < 3.0 else "Market Compensation Band"
+        # Ground truth calibrated prediction directly from Attrition ML service
+        pred = attrition_service.predict_risk(salary, tenure, perf, eng, overtime)
+        base_risk = pred["attrition_probability"]
+        risk_level = pred["risk_level"]
+        top_drivers = pred["top_drivers"]
+        driver = top_drivers[0] if top_drivers else "Workplace Burnout & Sprint Fatigue"
 
         employees.append({
             "id": emp_id,
@@ -253,6 +233,7 @@ def build_enterprise_employees():
             "attrition_risk": round(base_risk, 2),
             "probability": round(base_risk, 2),
             "risk_level": risk_level,
+            "top_drivers": top_drivers,
             "primary_driver": driver,
             "status": "Active",
             "employment_status": "Active",

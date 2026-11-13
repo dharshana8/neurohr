@@ -626,7 +626,7 @@ Password: ${pass}
             <div className="text-3xl font-black mt-2">
               {isLoading ? '...' : organizations.filter(o => (o.plan_tier || '').toUpperCase() === 'ENTERPRISE').length}
             </div>
-            <p className="text-xs text-gray-500 mt-3">Full Grok AI & RAG Copilot tier</p>
+            <p className="text-xs text-gray-500 mt-3">Full Gemini 2.0 AI & RAG Copilot tier</p>
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
@@ -943,7 +943,7 @@ Password: ${pass}
                 <div className="py-4 flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-sm text-gray-900 dark:text-white">Global AI & Copilot Engine</h4>
-                    <p className="text-xs text-gray-500">Allows customer organizations with Professional/Enterprise licenses to execute Grok AI queries.</p>
+                    <p className="text-xs text-gray-500">Allows customer organizations with Professional/Enterprise licenses to execute Google Gemini 2.0 AI queries.</p>
                   </div>
                   <button
                     disabled={isUpdatingFlag}

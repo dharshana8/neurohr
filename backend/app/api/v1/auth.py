@@ -71,5 +71,18 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.get("/users/me")
 def get_me(current_user: dict = Depends(get_current_user)):
-    return current_user
+    from app.core.database import ORGANIZATIONS
+    org_id = current_user.get("organization_id")
+    org = next((o for o in ORGANIZATIONS if o["id"] == org_id), None)
+    res = dict(current_user)
+    if org:
+        res["organization_name"] = org.get("name")
+        res["plan_tier"] = org.get("plan_tier", "STARTER")
+        res["plan_limits"] = org.get("plan_limits", {})
+        res["features"] = org.get("plan_limits", {}).get("features", [])
+    else:
+        res["organization_name"] = "Platform Root" if current_user.get("role") == "PLATFORM_ADMIN" else "Acme Corporation"
+        res["plan_tier"] = "ENTERPRISE" if current_user.get("role") == "PLATFORM_ADMIN" else "PROFESSIONAL"
+        res["features"] = []
+    return res
 

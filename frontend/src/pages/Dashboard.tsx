@@ -418,6 +418,8 @@ export default function Dashboard() {
     return p.split('/').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' › ');
   })();
 
+  const planTier = (user?.plan_tier || 'ENTERPRISE').toUpperCase();
+
   const navItems = [
     { section: 'Core AI Engine', allowedRoles: ['ORGANIZATION_ADMIN', 'HR_MANAGER', 'HR_ANALYST'], items: [
       { to: '/dashboard/overview', icon: <LayoutDashboard className="w-4 h-4" />, label: 'Overview', match: ['/dashboard/overview', '/dashboard'] },
@@ -426,12 +428,16 @@ export default function Dashboard() {
       { to: '/dashboard/workforce/employees', icon: <Users className="w-4 h-4" />, label: 'Employee Records', match: ['/employees'] },
     ]},
     { section: 'Enterprise Portals', allowedRoles: ['ORGANIZATION_ADMIN', 'HR_MANAGER'], items: [
-      { to: '/dashboard/hris', icon: <Building2 className="w-4 h-4 text-indigo-400" />, label: 'HRIS People Portal', match: ['/dashboard/hris'] },
-      { to: '/dashboard/erp', icon: <Layers className="w-4 h-4 text-emerald-400" />, label: 'ERP Operations & Sync', match: ['/dashboard/erp'] },
-      { to: '/dashboard/ai/copilot', icon: <Sparkles className="w-4 h-4 text-amber-400" />, label: 'AI HR Copilot', match: ['/ai/copilot'] },
-      { to: '/dashboard/ai/evaluation', icon: <FlaskConical className="w-4 h-4 text-purple-400" />, label: 'AI Model Testing Lab', match: ['/dashboard/ai/evaluation'] },
-    ]},
-  ];
+      { to: '/dashboard/hris', icon: <Building2 className="w-4 h-4 text-indigo-400" />, label: 'HRIS People Portal', match: ['/dashboard/hris'], minPlan: 'PROFESSIONAL' },
+      { to: '/dashboard/erp', icon: <Layers className="w-4 h-4 text-emerald-400" />, label: 'ERP Operations & Sync', match: ['/dashboard/erp'], minPlan: 'ENTERPRISE' },
+      { to: '/dashboard/ai/copilot', icon: <Sparkles className="w-4 h-4 text-amber-400" />, label: 'Gemini AI Copilot', match: ['/ai/copilot'], minPlan: 'PROFESSIONAL' },
+      { to: '/dashboard/ai/evaluation', icon: <FlaskConical className="w-4 h-4 text-purple-400" />, label: 'AI Model Testing Lab', match: ['/dashboard/ai/evaluation'], minPlan: 'ENTERPRISE' },
+    ].filter(item => {
+      if (item.minPlan === 'ENTERPRISE') return planTier === 'ENTERPRISE';
+      if (item.minPlan === 'PROFESSIONAL') return planTier === 'PROFESSIONAL' || planTier === 'ENTERPRISE';
+      return true;
+    })},
+  ].filter(section => section.items.length > 0);
 
   const isActive = (matchPaths: string[]) =>
     matchPaths.some(mp =>
@@ -448,7 +454,12 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-tight leading-none">NeuroHR</h1>
-            <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">X Platform</span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">X Platform</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                {planTier}
+              </span>
+            </div>
           </div>
         </div>
       </div>

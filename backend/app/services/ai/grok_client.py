@@ -28,11 +28,12 @@ class GrokClient:
         self._init_client()
 
     def _init_client(self):
-        api_key = settings.XAI_API_KEY.strip() if settings.XAI_API_KEY else ""
+        api_key = (settings.GEMINI_API_KEY.strip() if getattr(settings, "GEMINI_API_KEY", None) else "") or (settings.XAI_API_KEY.strip() if getattr(settings, "XAI_API_KEY", None) else "")
+        base_url = getattr(settings, "GEMINI_BASE_URL", None) or getattr(settings, "XAI_BASE_URL", None) or "https://generativelanguage.googleapis.com/v1beta/openai/"
         if api_key:
             self._client = AsyncOpenAI(
                 api_key=api_key,
-                base_url=settings.XAI_BASE_URL,
+                base_url=base_url,
                 timeout=30.0,
                 max_retries=2
             )
@@ -49,7 +50,8 @@ class GrokClient:
     def is_configured(self) -> bool:
         if self._is_configured_override is not None:
             return self._is_configured_override
-        return bool(settings.XAI_API_KEY and settings.XAI_API_KEY.strip())
+        key = getattr(settings, "GEMINI_API_KEY", "") or getattr(settings, "XAI_API_KEY", "")
+        return bool(key and key.strip())
 
     @is_configured.setter
     def is_configured(self, value: Optional[bool]):
@@ -61,7 +63,7 @@ class GrokClient:
 
     @property
     def model(self) -> str:
-        return settings.XAI_MODEL or "grok-4.6"
+        return getattr(settings, "GEMINI_MODEL", None) or getattr(settings, "XAI_MODEL", None) or "gemini-2.0-flash"
 
     async def generate_chat(
         self,
@@ -154,3 +156,7 @@ class GrokClient:
             raise AIResponseParseError(f"Grok response was not valid JSON: {cleaned[:100]}...")
 
 grok_client = GrokClient.get_instance()
+
+
+GeminiClient = GrokClient
+gemini_client = grok_client

@@ -298,7 +298,7 @@ export default function CareerPathDashboard() {
                       onClick={() => handleGenerateAiPlan(path.employee_id, path.target_role)}
                       disabled={generatingPlanId === path.employee_id}
                       className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
-                      title="Generate customized Grok AI upskilling plan"
+                      title="Generate customized Gemini AI upskilling plan"
                     >
                       <Sparkles className={`w-3.5 h-3.5 ${generatingPlanId === path.employee_id ? 'animate-spin' : ''}`} />
                       {generatingPlanId === path.employee_id ? 'Synthesizing...' : 'AI Upskilling Plan'}
@@ -473,7 +473,7 @@ export default function CareerPathDashboard() {
         </div>
       )}
 
-      {/* Grok AI Development Plan Modal */}
+      {/* Gemini AI Development Plan Modal */}
       {aiPlanModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-xl w-full border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
@@ -534,11 +534,11 @@ export default function CareerPathDashboard() {
               </div>
             )}
 
-            {/* Grok Plan Narrative */}
+            {/* Gemini Plan Narrative */}
             <div className="p-4 bg-purple-50/50 dark:bg-purple-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/40 space-y-2">
               <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                Grok AI Career Coaching Synthesis
+                Gemini AI Career Coaching Synthesis
               </div>
               <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed font-normal whitespace-pre-wrap">
                 {aiPlanModal.plan_summary}

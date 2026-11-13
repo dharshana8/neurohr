@@ -43,12 +43,12 @@ TIER_LIMITS: Dict[str, Dict[str, Any]] = {
             "skill_gap_analysis",
             "career_pathing",
             "sentiment_intelligence",
-            "grok_copilot_rag",
+            "gemini_copilot_rag",
             "executive_insights",
         ],
         "max_integrations": 99,
         "copilot_access": True,
-        "description": "Unlimited enterprise scale with Grok AI Copilot, deep integrations, and dedicated intelligence analytics.",
+        "description": "Unlimited enterprise scale with Gemini 2.0 AI Copilot, deep integrations, and dedicated intelligence analytics.",
     },
 }
 

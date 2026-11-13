@@ -68,20 +68,25 @@ def get_attrition_summary(current_user: dict = Depends(get_current_user)):
     high = sum(1 for e in EMPLOYEES if e.get("attrition_risk", 0) >= 0.65 or e.get("risk_level") == "HIGH")
     med = sum(1 for e in EMPLOYEES if (0.35 <= e.get("attrition_risk", 0) < 0.65) or e.get("risk_level") == "MEDIUM")
     low = max(0, total - (high + med))
+    rate = round((high / max(total, 1)) * 100, 1) if total > 0 else 0.0
 
     return {
         "total_analyzed": total,
         "high_risk": high,
         "medium_risk": med,
         "low_risk": low,
-        "workforce_attrition_rate": round((high / max(total, 1)) * 100, 1)
+        "attrition_rate": rate,
+        "workforce_attrition_rate": rate,
+        "high_risk_percentage": rate,
+        "medium_risk_percentage": round((med / max(total, 1)) * 100, 1) if total > 0 else 0.0,
+        "low_risk_percentage": round((low / max(total, 1)) * 100, 1) if total > 0 else 0.0,
+        "average_flight_risk": round(sum(float(e.get("probability", e.get("attrition_risk", 0))) for e in EMPLOYEES) / max(total, 1) * 100, 1) if total > 0 else 0.0
     }
 
 @router.get("/high-risk")
 def get_high_risk_employees(current_user: dict = Depends(get_current_user)):
     sorted_emps = sorted(EMPLOYEES, key=lambda x: float(x.get("attrition_risk", x.get("probability", 0))), reverse=True)
-    high_and_med = [e for e in sorted_emps if float(e.get("attrition_risk", 0)) >= 0.40 or e.get("risk_level") in ["HIGH", "MEDIUM"]]
-    display_list = high_and_med if high_and_med else sorted_emps[:10]
+    high_list = [e for e in sorted_emps if float(e.get("attrition_risk", 0)) >= 0.65 or e.get("risk_level") == "HIGH"]
 
     return [
         {
@@ -92,7 +97,8 @@ def get_high_risk_employees(current_user: dict = Depends(get_current_user)):
             "role": e["role"],
             "probability": float(e.get("probability", e.get("attrition_risk", 0.15))),
             "attrition_probability": float(e.get("probability", e.get("attrition_risk", 0.15))),
-            "risk_level": e.get("risk_level", "HIGH" if float(e.get("attrition_risk", 0)) >= 0.65 else "MEDIUM"),
+            "attrition_risk": float(e.get("probability", e.get("attrition_risk", 0.15))),
+            "risk_level": "HIGH",
             "salary": e.get("salary", 2200000),
             "tenure_years": e.get("tenure_years", 3.0),
             "performance_score": e.get("performance_score", 4.0),
@@ -100,7 +106,7 @@ def get_high_risk_employees(current_user: dict = Depends(get_current_user)):
             "overtime_hours": e.get("overtime_hours", 10),
             "primary_driver": e.get("primary_driver", "Workplace Burnout & Sprint Fatigue")
         }
-        for e in display_list
+        for e in high_list
     ]
 
 @router.post("/predict-all")
@@ -119,10 +125,20 @@ def predict_all_workforce(current_user: dict = Depends(get_current_user)):
         e["top_drivers"] = pred["top_drivers"]
         mongo_save_employee(e)
 
+    total = len(EMPLOYEES)
+    high = sum(1 for e in EMPLOYEES if e.get("attrition_risk", 0) >= 0.65 or e.get("risk_level") == "HIGH")
+    med = sum(1 for e in EMPLOYEES if (0.35 <= e.get("attrition_risk", 0) < 0.65) or e.get("risk_level") == "MEDIUM")
+    low = max(0, total - (high + med))
+    rate = round((high / max(total, 1)) * 100, 1) if total > 0 else 0.0
+
     return {
         "status": "SUCCESS",
-        "processed_count": len(EMPLOYEES),
-        "message": f"Successfully evaluated {len(EMPLOYEES)} employee records through Random Forest ML pipeline."
+        "processed_count": total,
+        "high_risk_count": high,
+        "medium_risk_count": med,
+        "low_risk_count": low,
+        "attrition_rate": rate,
+        "message": f"Successfully evaluated {total} employee records through Random Forest ML pipeline. Identified {high} high-risk employees ({rate}% attrition rate)."
     }
 
 @router.post("/explain")
@@ -163,9 +179,9 @@ def explain_employee_risk(req: ExplainRequest, current_user: dict = Depends(get_
             "factor": f"Depressed Workplace Engagement Score ({eng:.1f}/5.0 in Q3 pulse)",
             "impact": "+0.38 (High Detachment Signal)"
         })
-    if salary < 100000:
+    if salary < 1800000:
         top_factors.append({
-            "factor": f"Compensation Lag (${salary:,} vs ${125000:,} dept market median)",
+            "factor": f"Compensation Lag (₹{salary:,.0f} vs dept market median band)",
             "impact": "+0.26 (Market Poaching Vulnerability)"
         })
 

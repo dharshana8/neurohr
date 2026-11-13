@@ -7,6 +7,8 @@ interface User {
   email: string;
   role: string;
   organization_id?: string;
+  plan_tier?: string;
+  organization_name?: string;
 }
 
 interface AuthContextType {

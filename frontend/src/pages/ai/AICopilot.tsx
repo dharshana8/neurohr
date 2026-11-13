@@ -68,7 +68,7 @@ export default function AICopilot() {
     setMessages([
       {
         role: 'assistant',
-        content: `Hello! I am **NeuroHR Copilot**, powered by xAI Grok. I can help you analyze attrition risk factors, explore career pathways, review recruitment matching, and answer questions about your organization's internal HR policies. How can I assist you today?`,
+        content: `Hello! I am **NeuroHR Copilot**, powered by Google Gemini AI. I can help you analyze attrition risk factors, explore career pathways, review recruitment matching, and answer questions about your organization's internal HR policies. How can I assist you today?`,
         is_ai_assisted: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
@@ -203,7 +203,7 @@ export default function AICopilot() {
                 {aiStatus?.is_configured ? (
                   <span className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-full flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    xAI Grok ({aiStatus.model})
+                    Google Gemini ({aiStatus.model})
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-full flex items-center gap-1.5">
@@ -313,7 +313,7 @@ export default function AICopilot() {
                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                <span className="ml-1 text-gray-400">Grok is synthesizing answer...</span>
+                <span className="ml-1 text-gray-400">Gemini is synthesizing answer...</span>
               </div>
             </div>
           )}

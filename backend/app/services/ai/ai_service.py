@@ -74,13 +74,13 @@ class AIService:
             )
             await conv.insert()
 
-        # 2. Check Demo Mode (Grok unconfigured)
+        # 2. Check Demo Mode (Gemini unconfigured)
         if not grok_client.is_configured:
             # Provide intelligent local deterministic answer based on DB data
             local_context, sources, raw_data = await AIService._gather_structured_context(org_id, message)
             demo_answer = (
                 f"**[Demo Mode - Generative AI Not Configured]**\n\n"
-                f"To unlock natural-language Grok reasoning, set `XAI_API_KEY` in your environment.\n\n"
+                f"To unlock natural-language Gemini reasoning, set `GEMINI_API_KEY` in your environment.\n\n"
                 f"**Verified Organization Data:**\n{local_context}"
             )
             # Record in conversation
@@ -343,7 +343,7 @@ class AIService:
             else:
                 protective_factors.append(factor_item)
 
-        # 2. Generate explanation with Grok or fallback
+        # 2. Generate explanation with Gemini or fallback
         if not grok_client.is_configured:
             fallback_explanation = (
                 f"Estimated attrition risk is {risk_level.lower()} (score: {risk_score}). "
@@ -360,7 +360,7 @@ class AIService:
                 ai_explanation=fallback_explanation,
                 ai_narrative=fallback_explanation,
                 is_ai_assisted=False,
-                disclaimer="Deterministic model factor summary (Grok unconfigured)."
+                disclaimer="Deterministic model factor summary (Gemini unconfigured)."
             )
 
         prompt = ATTRITION_EXPLAIN_PROMPT.format(
@@ -423,7 +423,7 @@ class AIService:
 
         context_text = f"Experience: {employee.experience} yrs; Performance Score: {employee.performance_score}/5.0 (Advisory context only)"
 
-        # Fallback if Grok is not configured
+        # Fallback if Gemini is not configured
         if not grok_client.is_configured:
             dev_areas = [
                 DevelopmentAreaItem(
@@ -445,7 +445,7 @@ class AIService:
                 development_areas=dev_areas,
                 milestones=milestones,
                 is_ai_assisted=False,
-                disclaimer="Deterministic rule-based recommendations (Grok unconfigured)."
+                disclaimer="Deterministic rule-based recommendations (Gemini unconfigured)."
             )
 
         prompt = CAREER_RECOMMEND_PROMPT.format(

@@ -299,7 +299,7 @@ export default function WorkplaceSentimentDashboard() {
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-purple-400" />
                     <h3 className="text-sm font-bold uppercase tracking-wider text-purple-300">
-                      Grok AI Executive Insight
+                      Gemini AI Executive Insight
                     </h3>
                   </div>
                   <button
@@ -317,7 +317,7 @@ export default function WorkplaceSentimentDashboard() {
                     <p className="italic">"{aiInsight.insight}"</p>
                   ) : (
                     <p className="text-slate-500 italic">
-                      Click "Generate AI Insight" to have Grok analyze aggregated sentiment distribution, top themes, and departmental trends without exposing employee PII.
+                      Click "Generate AI Insight" to have Gemini analyze aggregated sentiment distribution, top themes, and departmental trends without exposing employee PII.
                     </p>
                   )}
                 </div>

@@ -348,8 +348,8 @@ class SentimentAnalysisService:
         department_filter: Optional[str] = None
     ) -> Tuple[str, bool]:
         """
-        Generate executive HR insight using Grok over aggregated context without PII.
-        Fallback to deterministic template if Grok is offline or unconfigured.
+        Generate executive HR insight using Gemini over aggregated context without PII.
+        Fallback to deterministic template if Gemini is offline or unconfigured.
         """
         total = int(overall_stats.get("total", 0))
         if total == 0:
@@ -383,7 +383,7 @@ class SentimentAnalysisService:
         if not grok_client.is_configured:
             return fallback, False
 
-        # Structured context for Grok (ZERO PII, aggregated only)
+        # Structured context for Gemini (ZERO PII, aggregated only)
         structured_context = {
             "scope": f"Department: {department_filter}" if department_filter else "Organization-Wide",
             "total_analyzed_responses": total,
@@ -426,5 +426,5 @@ class SentimentAnalysisService:
             )
             return insight_text.strip(), True
         except Exception as e:
-            logger.warning("Grok AI insight generation failed or timed out: %s. Using fallback.", str(e))
+            logger.warning("Gemini AI insight generation failed or timed out: %s. Using fallback.", str(e))
             return fallback, False

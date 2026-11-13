@@ -719,7 +719,7 @@ async def get_sentiment_themes(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. GROK AI EXECUTIVE INSIGHT ENDPOINT
+# 5. GEMINI AI EXECUTIVE INSIGHT ENDPOINT
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/sentiment/insight", response_model=AIInsightResponse)

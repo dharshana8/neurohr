@@ -233,10 +233,10 @@ export default function CandidateRanking() {
                         onClick={() => handleExplainMatch(item.candidate_id)}
                         disabled={explainingCandId === item.candidate_id}
                         className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
-                        title="Generate natural-language Grok match rationale"
+                        title="Generate natural-language Gemini match rationale"
                       >
                         <Sparkles className={`w-3.5 h-3.5 ${explainingCandId === item.candidate_id ? 'animate-spin' : ''}`} />
-                        {explainingCandId === item.candidate_id ? 'Synthesizing...' : 'Explain Match (Grok)'}
+                        {explainingCandId === item.candidate_id ? 'Synthesizing...' : 'Explain Match (Gemini)'}
                       </button>
 
                       <button
@@ -282,7 +282,7 @@ export default function CandidateRanking() {
         </div>
       )}
 
-      {/* Grok Match Explanation Modal */}
+      {/* Gemini Match Explanation Modal */}
       {explainModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-xl w-full border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
@@ -337,7 +337,7 @@ export default function CandidateRanking() {
             <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 space-y-2">
               <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                Grok AI Synthesis
+                Gemini AI Synthesis
               </div>
               <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed font-normal whitespace-pre-wrap">
                 {explainModal.ai_explanation}

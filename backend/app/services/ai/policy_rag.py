@@ -104,7 +104,7 @@ class PolicyRAGService:
     @staticmethod
     def format_chunks_for_prompt(results: List[Dict[str, Any]]) -> str:
         """
-        Format retrieved chunks into clean markdown citations for Grok.
+        Format retrieved chunks into clean markdown citations for Gemini.
         """
         if not results:
             return "No relevant organization policy excerpts found."

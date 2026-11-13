@@ -23,19 +23,27 @@ def get_workforce_stats(current_user: dict = Depends(get_current_user)):
     high_attrition = sum(1 for e in EMPLOYEES if e.get("attrition_risk", 0) >= 0.65 or e.get("risk_level") == "HIGH")
     avg_perf = sum(e.get("performance_score", 0) for e in EMPLOYEES) / max(total, 1)
     avg_eng = sum(e.get("engagement_score", 0) for e in EMPLOYEES) / max(total, 1)
+    attrition_rate = round((high_attrition / max(total, 1)) * 100, 1) if total > 0 else 0.0
 
     return {
         "total_employees": total,
         "high_attrition_risk": high_attrition,
+        "attrition_rate": attrition_rate,
         "avg_performance": round(avg_perf, 2),
         "avg_engagement": round(avg_eng, 2)
     }
 
 @router.get("/employees")
-def list_employees(department: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+def list_employees(
+    department: Optional[str] = None, 
+    risk_level: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
     res = []
     for e in EMPLOYEES:
         if department and e.get("department", "").lower() != department.lower():
+            continue
+        if risk_level and str(e.get("risk_level", "")).upper() != risk_level.upper():
             continue
         emp_dict = dict(e)
         emp_dict["employee_id"] = e.get("employee_id") or e.get("id")

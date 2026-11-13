@@ -11,10 +11,15 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "neurohr"
 
-    # xAI Grok API Configuration
+    # Google Gemini AI Configuration
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+    # Legacy/Fallback Aliases
     XAI_API_KEY: str = ""
-    XAI_MODEL: str = "grok-4.6"
-    XAI_BASE_URL: str = "https://api.x.ai/v1"
+    XAI_MODEL: str = "gemini-2.0-flash"
+    XAI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
 

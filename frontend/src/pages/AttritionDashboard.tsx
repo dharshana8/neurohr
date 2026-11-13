@@ -406,7 +406,7 @@ export default function AttritionDashboard() {
                         onClick={(e) => handleExplainRisk(e, empId)}
                         disabled={explainingEmpId === empId}
                         className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-all disabled:opacity-50"
-                        title="Explain attrition drivers with Grok AI"
+                        title="Explain attrition drivers with Gemini AI"
                       >
                         <Sparkles className={`w-3.5 h-3.5 ${explainingEmpId === empId ? 'animate-spin' : ''}`} />
                         {explainingEmpId === empId ? 'Analyzing...' : 'Explain Risk'}
@@ -421,7 +421,7 @@ export default function AttritionDashboard() {
         )}
       </div>
 
-      {/* Grok Attrition Explanation Modal */}
+      {/* Gemini AI Attrition Explanation Modal */}
       {explainModal && (() => {
         const turnoverProb = typeof explainModal.probability === 'number'
           ? explainModal.probability
@@ -516,7 +516,7 @@ export default function AttritionDashboard() {
                 </div>
               </div>
 
-              {/* Grok Narrative */}
+              {/* Gemini AI Narrative */}
               <div className="p-4 bg-purple-50/50 dark:bg-purple-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/40 space-y-2">
                 <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5" />

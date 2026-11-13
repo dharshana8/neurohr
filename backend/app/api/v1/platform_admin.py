@@ -103,6 +103,21 @@ def log_platform_audit(action: str, resource_type: str, resource_id: str, status
 
 # ─── Organizations Endpoints ──────────────────────────────────────────────────
 
+def find_org(org_id: str) -> Optional[dict]:
+    org = next((o for o in ORGANIZATIONS if o.get("id") == org_id), None)
+    if not org:
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                db_org = db["organizations"].find_one({"id": org_id}, {"_id": 0})
+                if db_org:
+                    ORGANIZATIONS.append(db_org)
+                    return db_org
+            except Exception:
+                pass
+    return org
+
+
 @router.get("/organizations")
 def list_organizations(current_user: dict = Depends(require_superadmin)):
     db = get_mongo_db()
@@ -207,7 +222,7 @@ def update_org_status(
     status: str = Query(..., pattern="^(ACTIVE|SUSPENDED)$"), 
     current_user: dict = Depends(require_superadmin)
 ):
-    org = next((o for o in ORGANIZATIONS if o["id"] == org_id), None)
+    org = find_org(org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -234,7 +249,7 @@ def update_org_status(
 
 @router.put("/organizations/{org_id}/plan")
 def update_org_plan(org_id: str, req: UpdatePlanRequest, current_user: dict = Depends(require_superadmin)):
-    org = next((o for o in ORGANIZATIONS if o["id"] == org_id), None)
+    org = find_org(org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -267,7 +282,7 @@ def update_org_plan(org_id: str, req: UpdatePlanRequest, current_user: dict = De
 
 @router.post("/organizations/{org_id}/admin")
 def reset_org_admin(org_id: str, req: ResetAdminRequest, current_user: dict = Depends(require_superadmin)):
-    org = next((o for o in ORGANIZATIONS if o["id"] == org_id), None)
+    org = find_org(org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -306,7 +321,7 @@ def reset_org_admin(org_id: str, req: ResetAdminRequest, current_user: dict = De
 @router.delete("/organizations/{org_id}")
 def delete_org(org_id: str, current_user: dict = Depends(require_superadmin)):
     global ORGANIZATIONS
-    org = next((o for o in ORGANIZATIONS if o["id"] == org_id), None)
+    org = find_org(org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -332,7 +347,7 @@ def delete_org(org_id: str, current_user: dict = Depends(require_superadmin)):
 
 @router.post("/organizations/{org_id}/impersonate")
 def impersonate_tenant(org_id: str, current_user: dict = Depends(require_superadmin)):
-    org = next((o for o in ORGANIZATIONS if o["id"] == org_id), None)
+    org = find_org(org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -397,37 +412,62 @@ def get_system_health(current_user: dict = Depends(require_superadmin)):
 
 @router.get("/organizations/{org_id}/telemetry")
 def get_org_telemetry(org_id: str, current_user: dict = Depends(require_superadmin)):
-    org = next((o for o in ORGANIZATIONS if o["id"] == org_id), None)
+    org = find_org(org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
     tier = org.get("plan_tier", "STARTER")
     tier_info = TIER_CONFIGS.get(tier, TIER_CONFIGS["STARTER"])
-    max_emps = org.get("plan_limits", {}).get("max_employees") or tier_info["max_employees"]
-    emp_count = org.get("employee_count", 0)
+    max_emps = tier_info["max_employees"]
+
     if org_id == "org_acme_corp":
-        emp_count = max(emp_count, len(EMPLOYEES))
+        emp_count = len(EMPLOYEES)
+        attrition_count = len(EMPLOYEES)
+        jobs_count = 5
+        candidates_count = 18
+        surveys_count = 24
+        integrations_count = 3
+    else:
+        db = get_mongo_db()
+        org_emps = []
+        if db is not None:
+            try:
+                org_emps = list(db["employees"].find({"organization_id": org_id}))
+            except Exception:
+                pass
+        emp_count = len(org_emps) if org_emps else org.get("employee_count", 0)
+        attrition_count = len([e for e in org_emps if e.get("attrition_probability") is not None]) if emp_count > 0 else 0
+        jobs_count = 0
+        candidates_count = 0
+        surveys_count = 0
+        integrations_count = 0
 
     return {
         "organization_id": org["id"],
         "organization_name": org["name"],
         "plan_tier": tier,
         "subscription_status": org.get("subscription_status", "ACTIVE"),
-        "plan_limits": org.get("plan_limits") or tier_info,
+        "plan_limits": {
+            "max_employees": max_emps,
+            "features": tier_info["features"],
+            "max_integrations": tier_info["max_integrations"],
+            "copilot_access": tier_info["copilot_access"],
+            "description": tier_info["description"]
+        },
         "seat_capacity": {
             "current_employees": emp_count,
             "max_employees": max_emps,
             "utilization_pct": round((emp_count / max(max_emps, 1)) * 100, 1)
         },
         "activity_metrics": {
-            "attrition_predictions_count": 420 if org_id == "org_acme_corp" else 84,
-            "jobs_posted_count": 5 if org_id == "org_acme_corp" else 2,
-            "candidates_tracked_count": 18 if org_id == "org_acme_corp" else 6,
-            "sentiment_surveys_logged": 62 if org_id == "org_acme_corp" else 15,
-            "integrations_connected": 3 if org_id == "org_acme_corp" else 1,
+            "attrition_predictions_count": attrition_count,
+            "jobs_posted_count": jobs_count,
+            "candidates_tracked_count": candidates_count,
+            "sentiment_surveys_logged": surveys_count,
+            "integrations_connected": integrations_count,
             "audit_events_logged": len([a for a in AUDIT_LOGS if a.get("resource_id") == org_id])
         },
-        "last_activity": datetime.now(timezone.utc).isoformat(),
+        "last_activity": org.get("created_at") or datetime.now(timezone.utc).isoformat(),
         "privacy_notice": "Strict tenant cryptographic boundary enforced. Raw employee records are inaccessible to SuperAdmin."
     }
 

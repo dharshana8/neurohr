@@ -126,7 +126,7 @@ class AIInsightResponse(BaseModel):
     department_summary: Optional[Dict[str, Any]] = None
     generated_at: datetime
     is_ai_assisted: bool = True
-    model: str = "grok-4.6"
+    model: str = "gemini-2.0-flash"
     disclaimer: str = "AI-generated executive summary based strictly on stored workplace sentiment data."
 
 
