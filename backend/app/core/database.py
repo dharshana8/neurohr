@@ -219,6 +219,7 @@ def build_enterprise_employees():
         employees.append({
             "id": emp_id,
             "employee_id": emp_id,
+            "organization_id": "org_acme_corp",
             "name": name,
             "email": clean_email,
             "department": dept,
@@ -625,13 +626,41 @@ def mongo_save_employee(emp_dict: dict):
     try:
         clean = dict(emp_dict)
         emp_id = clean.get("id") or clean.get("employee_id")
+        org_id = clean.get("organization_id", "org_acme_corp")
+        clean["organization_id"] = org_id
         db["employees"].update_one(
-            {"$or": [{"id": emp_id}, {"employee_id": emp_id}]},
+            {"$and": [{"organization_id": org_id}, {"$or": [{"id": emp_id}, {"employee_id": emp_id}]}]},
             {"$set": clean},
             upsert=True
         )
     except Exception as e:
         logger.error(f"MongoDB save employee failed: {e}")
+
+def get_tenant_employees(org_id: str) -> list:
+    if not org_id:
+        org_id = "org_acme_corp"
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            records = list(db["employees"].find({"organization_id": org_id}, {"_id": 0}))
+            if records:
+                return records
+            if org_id == "org_acme_corp":
+                return [e for e in EMPLOYEES if e.get("organization_id", "org_acme_corp") == "org_acme_corp"]
+            return []
+        except Exception:
+            pass
+    if org_id == "org_acme_corp":
+        return [e for e in EMPLOYEES if e.get("organization_id", "org_acme_corp") == "org_acme_corp"]
+    return [e for e in EMPLOYEES if e.get("organization_id") == org_id]
+
+def mongo_clear_tenant_employees(org_id: str):
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            db["employees"].delete_many({"organization_id": org_id})
+        except Exception as e:
+            logger.error(f"MongoDB clear tenant employees failed: {e}")
 
 def mongo_delete_employee(emp_id: str):
     db = get_mongo_db()

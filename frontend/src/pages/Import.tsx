@@ -1,3 +1,4 @@
+import { useAuth } from '../context/AuthContext';
 import React, { useState } from 'react';
 import axios from 'axios';
 import { UploadCloud, CheckCircle, AlertCircle, FileText, X, Trash2, RefreshCw } from 'lucide-react';
@@ -12,6 +13,12 @@ interface CSVPreviewData {
 }
 
 export default function Import() {
+  const { user, token } = useAuth();
+  const getAuthHeader = () => ({
+    headers: {
+      Authorization: `Bearer ${token || localStorage.getItem('token') || ''}`
+    }
+  });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<CSVPreviewData | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
@@ -25,7 +32,7 @@ export default function Import() {
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/v1/workforce/stats');
+      const res = await axios.get('http://localhost:8000/api/v1/workforce/stats', getAuthHeader());
       setTotalCount(res.data.total_employees);
     } catch {
       // ignore
@@ -41,7 +48,7 @@ export default function Import() {
       setIsProcessing(true);
       setError('');
       setClearMessage('');
-      const res = await axios.delete('http://localhost:8000/api/v1/workforce/clear-data');
+      const res = await axios.delete('http://localhost:8000/api/v1/workforce/clear-data', getAuthHeader());
       setClearMessage(res.data.message || 'All workforce records wiped successfully.');
       setShowClearConfirm(false);
       setResult(null);
@@ -60,7 +67,7 @@ export default function Import() {
       setIsProcessing(true);
       setError('');
       setClearMessage('');
-      const res = await axios.post('http://localhost:8000/api/v1/workforce/seed-defaults');
+      const res = await axios.post('http://localhost:8000/api/v1/workforce/seed-defaults', {}, getAuthHeader());
       setClearMessage(res.data.message || 'Loaded 60 realistic enterprise workforce records.');
       fetchStats();
     } catch (err: any) {
@@ -153,8 +160,12 @@ export default function Import() {
 
     try {
       setStatusMessage('Importing into database...');
+      const authToken = token || localStorage.getItem('token') || '';
       const response = await axios.post('http://localhost:8000/api/v1/workforce/import', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${authToken}`
+        }
       });
       setResult(response.data);
     } catch (err: any) {
@@ -169,7 +180,7 @@ export default function Import() {
     try {
       setIsProcessing(true);
       setStatusMessage('Running attrition model predictions...');
-      await axios.post('http://localhost:8000/api/v1/attrition/predict-all');
+      await axios.post('http://localhost:8000/api/v1/attrition/predict-all', {}, getAuthHeader());
       navigate('/dashboard/intelligence/attrition');
     } catch (err) {
       setError('Failed to run attrition analysis');
@@ -312,6 +323,13 @@ export default function Import() {
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               Total Rows: <span className="font-semibold">{result.total_rows}</span> &middot; Valid: <span className="font-semibold text-green-600">{result.valid_rows}</span> &middot; Imported: <span className="font-semibold text-indigo-600">{result.imported_rows}</span>
             </p>
+            {result.attrition_rate !== undefined && (
+              <div className="mt-4 inline-flex items-center gap-3 px-5 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+                <span>Identified Flight Risk: <strong className="text-red-600 dark:text-red-400 font-bold">{result.high_risk_count} High Risk</strong></span>
+                <span>&bull;</span>
+                <span>Workforce Attrition Rate: <strong className="text-indigo-900 dark:text-white font-bold">{result.attrition_rate}%</strong></span>
+              </div>
+            )}
 
             {result.errors && result.errors.length > 0 && (
               <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md text-left text-xs">

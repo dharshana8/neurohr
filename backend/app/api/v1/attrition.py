@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel
 
-from app.core.database import EMPLOYEES, mongo_save_employee
+from app.core.database import EMPLOYEES, mongo_save_employee, get_tenant_employees
 from app.api.v1.auth import get_current_user
 from app.ml.attrition.service import attrition_service
 
@@ -64,9 +64,11 @@ def simulate_attrition(req: SimulateRequest, current_user: dict = Depends(get_cu
 
 @router.get("/summary")
 def get_attrition_summary(current_user: dict = Depends(get_current_user)):
-    total = len(EMPLOYEES)
-    high = sum(1 for e in EMPLOYEES if e.get("attrition_risk", 0) >= 0.65 or e.get("risk_level") == "HIGH")
-    med = sum(1 for e in EMPLOYEES if (0.35 <= e.get("attrition_risk", 0) < 0.65) or e.get("risk_level") == "MEDIUM")
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    emps = get_tenant_employees(org_id)
+    total = len(emps)
+    high = sum(1 for e in emps if float(e.get("attrition_risk", 0)) >= 0.65 or e.get("risk_level") == "HIGH")
+    med = sum(1 for e in emps if (0.35 <= float(e.get("attrition_risk", 0)) < 0.65) or e.get("risk_level") == "MEDIUM")
     low = max(0, total - (high + med))
     rate = round((high / max(total, 1)) * 100, 1) if total > 0 else 0.0
 
@@ -80,12 +82,14 @@ def get_attrition_summary(current_user: dict = Depends(get_current_user)):
         "high_risk_percentage": rate,
         "medium_risk_percentage": round((med / max(total, 1)) * 100, 1) if total > 0 else 0.0,
         "low_risk_percentage": round((low / max(total, 1)) * 100, 1) if total > 0 else 0.0,
-        "average_flight_risk": round(sum(float(e.get("probability", e.get("attrition_risk", 0))) for e in EMPLOYEES) / max(total, 1) * 100, 1) if total > 0 else 0.0
+        "average_flight_risk": round(sum(float(e.get("probability", e.get("attrition_risk", 0))) for e in emps) / max(total, 1) * 100, 1) if total > 0 else 0.0
     }
 
 @router.get("/high-risk")
 def get_high_risk_employees(current_user: dict = Depends(get_current_user)):
-    sorted_emps = sorted(EMPLOYEES, key=lambda x: float(x.get("attrition_risk", x.get("probability", 0))), reverse=True)
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    emps = get_tenant_employees(org_id)
+    sorted_emps = sorted(emps, key=lambda x: float(x.get("attrition_risk", x.get("probability", 0))), reverse=True)
     high_list = [e for e in sorted_emps if float(e.get("attrition_risk", 0)) >= 0.65 or e.get("risk_level") == "HIGH"]
 
     return [
@@ -111,7 +115,9 @@ def get_high_risk_employees(current_user: dict = Depends(get_current_user)):
 
 @router.post("/predict-all")
 def predict_all_workforce(current_user: dict = Depends(get_current_user)):
-    for e in EMPLOYEES:
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    emps = get_tenant_employees(org_id)
+    for e in emps:
         pred = attrition_service.predict_risk(
             salary=float(e.get("salary", 2200000)),
             tenure_years=float(e.get("tenure_years", 3.0)),
@@ -123,11 +129,12 @@ def predict_all_workforce(current_user: dict = Depends(get_current_user)):
         e["probability"] = pred["attrition_probability"]
         e["risk_level"] = pred["risk_level"]
         e["top_drivers"] = pred["top_drivers"]
+        e["organization_id"] = org_id
         mongo_save_employee(e)
 
-    total = len(EMPLOYEES)
-    high = sum(1 for e in EMPLOYEES if e.get("attrition_risk", 0) >= 0.65 or e.get("risk_level") == "HIGH")
-    med = sum(1 for e in EMPLOYEES if (0.35 <= e.get("attrition_risk", 0) < 0.65) or e.get("risk_level") == "MEDIUM")
+    total = len(emps)
+    high = sum(1 for e in emps if float(e.get("attrition_risk", 0)) >= 0.65 or e.get("risk_level") == "HIGH")
+    med = sum(1 for e in emps if (0.35 <= float(e.get("attrition_risk", 0)) < 0.65) or e.get("risk_level") == "MEDIUM")
     low = max(0, total - (high + med))
     rate = round((high / max(total, 1)) * 100, 1) if total > 0 else 0.0
 
@@ -144,9 +151,11 @@ def predict_all_workforce(current_user: dict = Depends(get_current_user)):
 @router.post("/explain")
 @router.post("/attrition")
 def explain_employee_risk(req: ExplainRequest, current_user: dict = Depends(get_current_user)):
-    emp = next((e for e in EMPLOYEES if e.get("id") == req.employee_id or e.get("employee_id") == req.employee_id), None)
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    emps = get_tenant_employees(org_id)
+    emp = next((e for e in emps if e.get("id") == req.employee_id or e.get("employee_id") == req.employee_id), None)
     if not emp:
-        emp = EMPLOYEES[0] if EMPLOYEES else None
+        emp = emps[0] if emps else None
         if not emp:
             raise HTTPException(status_code=404, detail="Employee not found")
 

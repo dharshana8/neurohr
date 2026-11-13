@@ -10,7 +10,10 @@ from app.core.database import (
     mongo_clear_all_employees,
     mongo_seed_employees,
     mongo_save_employee,
-    mongo_delete_employee
+    mongo_delete_employee,
+    get_tenant_employees,
+    mongo_clear_tenant_employees,
+    get_mongo_db
 )
 from app.api.v1.auth import get_current_user
 from app.ml.attrition.service import attrition_service
@@ -19,11 +22,13 @@ router = APIRouter()
 
 @router.get("/stats")
 def get_workforce_stats(current_user: dict = Depends(get_current_user)):
-    total = len(EMPLOYEES)
-    high_attrition = sum(1 for e in EMPLOYEES if e.get("attrition_risk", 0) >= 0.65 or e.get("risk_level") == "HIGH")
-    avg_perf = sum(e.get("performance_score", 0) for e in EMPLOYEES) / max(total, 1)
-    avg_eng = sum(e.get("engagement_score", 0) for e in EMPLOYEES) / max(total, 1)
-    attrition_rate = round((high_attrition / max(total, 1)) * 100, 1) if total > 0 else 0.0
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    emps = get_tenant_employees(org_id)
+    total = len(emps)
+    high_attrition = sum(1 for e in emps if float(e.get("attrition_risk", 0)) >= 0.65 or e.get("risk_level") == "HIGH")
+    avg_perf = (sum(float(e.get("performance_score", 0)) for e in emps) / total) if total > 0 else 0.0
+    avg_eng = (sum(float(e.get("engagement_score", 0)) for e in emps) / total) if total > 0 else 0.0
+    attrition_rate = round((high_attrition / total) * 100, 1) if total > 0 else 0.0
 
     return {
         "total_employees": total,
@@ -39,8 +44,10 @@ def list_employees(
     risk_level: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    emps = get_tenant_employees(org_id)
     res = []
-    for e in EMPLOYEES:
+    for e in emps:
         if department and e.get("department", "").lower() != department.lower():
             continue
         if risk_level and str(e.get("risk_level", "")).upper() != risk_level.upper():
@@ -56,7 +63,9 @@ def list_employees(
 
 @router.get("/employees/{employee_id}")
 def get_employee(employee_id: str, current_user: dict = Depends(get_current_user)):
-    for e in EMPLOYEES:
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    emps = get_tenant_employees(org_id)
+    for e in emps:
         if e.get("id") == employee_id or e.get("employee_id") == employee_id:
             emp_dict = dict(e)
             emp_dict["employee_id"] = e.get("id")
@@ -266,10 +275,18 @@ def delete_employee(employee_id: str, current_user: dict = Depends(get_current_u
 
 @router.delete("/clear-data")
 def clear_workforce_data(current_user: dict = Depends(get_current_user)):
-    global EMPLOYEES
-    EMPLOYEES.clear()
-    mongo_clear_all_employees()
-    return {"message": "All workforce records cleared successfully. Ready for fresh CSV upload."}
+    org_id = current_user.get("organization_id", "org_acme_corp")
+    if org_id == "org_acme_corp":
+        global EMPLOYEES
+        EMPLOYEES = []
+    mongo_clear_tenant_employees(org_id)
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            db["organizations"].update_one({"id": org_id}, {"$set": {"employee_count": 0}})
+        except Exception:
+            pass
+    return {"message": f"Workforce records for tenant '{org_id}' cleared successfully. Ready for fresh CSV upload."}
 
 @router.post("/seed-defaults")
 def seed_default_workforce(current_user: dict = Depends(get_current_user)):
@@ -281,42 +298,56 @@ def seed_default_workforce(current_user: dict = Depends(get_current_user)):
 
 @router.post("/import")
 async def import_workforce_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    org_id = current_user.get("organization_id", "org_acme_corp")
     contents = await file.read()
     try:
-        decoded = contents.decode("utf-8")
+        decoded = contents.decode("utf-8-sig")
     except UnicodeDecodeError:
         decoded = contents.decode("latin-1")
 
     reader = csv.DictReader(io.StringIO(decoded))
     imported_count = 0
+    high_count = 0
+    db = get_mongo_db()
 
-    for idx, row in enumerate(reader):
-        name = row.get("Name") or row.get("EmployeeName") or row.get("emp_name") or f"Employee {len(EMPLOYEES) + 1}"
-        dept = row.get("Department") or row.get("Dept") or "Engineering"
-        role = row.get("Role") or row.get("JobRole") or row.get("Title") or "Specialist"
+    for idx, raw_row in enumerate(reader):
+        row = {k.strip().lower(): v.strip() for k, v in raw_row.items() if k}
         
+        name = row.get("name") or row.get("employeename") or row.get("emp_name") or f"Employee {imported_count + 1}"
+        dept = row.get("department") or row.get("dept") or "Engineering"
+        role = row.get("role") or row.get("jobrole") or row.get("title") or "Specialist"
+        emp_id = row.get("employeeid") or row.get("empid") or row.get("id") or f"EMP-{org_id[-4:]}-{101 + imported_count}"
+
         try:
-            salary = float(row.get("Salary") or row.get("MonthlyIncome") or 1800000)
+            salary = float(row.get("salary") or row.get("monthlyincome") or row.get("ctc") or 1800000)
+            if salary < 200000:
+                salary = salary * 12.0
         except (ValueError, TypeError):
             salary = 1800000.0
 
         try:
-            perf = float(row.get("PerformanceScore") or row.get("PerformanceRating") or row.get("performance") or 4.0)
+            perf = float(row.get("performancescore") or row.get("performancerating") or row.get("performance") or 4.0)
         except (ValueError, TypeError):
             perf = 4.0
 
         try:
-            eng = float(row.get("EngagementScore") or row.get("JobSatisfaction") or row.get("engagement") or 3.5)
+            eng = float(row.get("engagementscore") or row.get("jobsatisfaction") or row.get("engagement") or 3.5)
         except (ValueError, TypeError):
             eng = 3.5
 
         try:
-            overtime = float(row.get("OverTimeHours") or row.get("overtime_hours") or (25 if row.get("OverTime") == "Yes" else 8))
+            ot_raw = row.get("overtimehours") or row.get("overtime_hours") or row.get("overtime")
+            if str(ot_raw).lower() in ["yes", "y", "true", "1"]:
+                overtime = 25.0
+            elif str(ot_raw).lower() in ["no", "n", "false", "0"]:
+                overtime = 5.0
+            else:
+                overtime = float(ot_raw or 10.0)
         except (ValueError, TypeError):
             overtime = 10.0
 
         try:
-            tenure = float(row.get("Tenure") or row.get("YearsAtCompany") or row.get("tenure_years") or 3.0)
+            tenure = float(row.get("tenure") or row.get("yearsatcompany") or row.get("tenure_years") or 3.0)
         except (ValueError, TypeError):
             tenure = 3.0
 
@@ -328,12 +359,17 @@ async def import_workforce_csv(file: UploadFile = File(...), current_user: dict 
             overtime_hours=overtime
         )
 
-        emp_id = row.get("EmployeeID") or row.get("EmpID") or f"EMP-{len(EMPLOYEES) + 101}"
+        prob = pred["attrition_probability"]
+        level = pred["risk_level"]
+        if level == "HIGH" or prob >= 0.65:
+            high_count += 1
+
         emp_record = {
             "id": emp_id,
             "employee_id": emp_id,
+            "organization_id": org_id,
             "name": name,
-            "email": row.get("Email") or f"{name.lower().replace(' ', '.')}@acme.com",
+            "email": row.get("email") or f"{name.lower().replace(' ', '.')}@{org_id}.com",
             "department": dept,
             "role": role,
             "salary": salary,
@@ -342,24 +378,40 @@ async def import_workforce_csv(file: UploadFile = File(...), current_user: dict 
             "performance_score": perf,
             "engagement_score": eng,
             "overtime_hours": overtime,
-            "attrition_risk": pred["attrition_probability"],
-            "probability": pred["attrition_probability"],
-            "risk_level": pred["risk_level"],
-            "primary_driver": "Workload Overtime Crunch" if overtime > 20 else "Market Compensation Band",
+            "attrition_risk": round(prob, 2),
+            "probability": round(prob, 2),
+            "risk_level": level,
+            "primary_driver": pred["top_drivers"][0] if pred["top_drivers"] else "Compensation & Workload",
             "top_drivers": pred["top_drivers"],
             "status": "Active",
-            "employment_status": "Active"
+            "employment_status": "Active",
+            "allocated_project": row.get("project") or "Core Deliverables",
+            "billability_pct": float(row.get("billability") or 100),
+            "leave_balance": {"casual": 8, "sick": 10, "earned": max(4, int(tenure * 4))}
         }
-        EMPLOYEES.append(emp_record)
+
         mongo_save_employee(emp_record)
+        if org_id == "org_acme_corp":
+            EMPLOYEES.append(emp_record)
         imported_count += 1
 
+    if db is not None:
+        try:
+            count = db["employees"].count_documents({"organization_id": org_id})
+            db["organizations"].update_one(
+                {"id": org_id},
+                {"$set": {"employee_count": count}}
+            )
+        except Exception:
+            pass
+
+    attr_rate = round((high_count / max(imported_count, 1)) * 100, 1)
     return {
         "status": "SUCCESS",
         "total_rows": imported_count,
         "valid_rows": imported_count,
         "imported_rows": imported_count,
-        "invalid_rows": 0,
-        "errors": [],
-        "message": f"Successfully parsed and predicted attrition for {imported_count} employee records into MongoDB."
+        "high_risk_count": high_count,
+        "attrition_rate": attr_rate,
+        "message": f"Successfully parsed and predicted attrition for {imported_count} employee records. Found {high_count} high-risk employees ({attr_rate}% attrition rate)."
     }

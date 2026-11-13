@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   LogOut, Building2, Plus, Copy, Check, Users, Search, 
-  RefreshCw, Key, Shield, Eye, EyeOff, AlertCircle,
+  RefreshCw, Key, Shield, Eye, EyeOff, AlertCircle, X,
   Activity, Sparkles, Zap, Lock, CheckCircle2,
   TrendingUp, Layers, Server, Briefcase, MessageSquare,
   LogIn, Trash2, Sliders, ToggleLeft, ToggleRight, DollarSign, Database, Cpu, ShieldCheck
@@ -143,6 +143,53 @@ export default function PlatformAdminDashboard() {
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [resetSuccessCredentials, setResetSuccessCredentials] = useState<{ email: string; password: string; orgName: string } | null>(null);
 
+  // Custom Plan Creation State
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [newPlanName, setNewPlanName] = useState('');
+  const [newPlanPrice, setNewPlanPrice] = useState(45000);
+  const [newPlanSeats, setNewPlanSeats] = useState(150);
+  const [newPlanCopilot, setNewPlanCopilot] = useState(true);
+  const [newPlanDesc, setNewPlanDesc] = useState('Custom tier tailored by Platform SuperAdmin.');
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [allPlans, setAllPlans] = useState<Record<string, any>>({});
+
+  const fetchPlans = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/v1/platform-admin/plans', {
+        headers: getAuthHeaders()
+      });
+      setAllPlans(res.data);
+    } catch (e) {
+      console.error('Failed to fetch plans', e);
+    }
+  };
+
+  const handleCreatePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlanName.trim()) return;
+    try {
+      setIsCreatingPlan(true);
+      await axios.post('http://localhost:8000/api/v1/platform-admin/plans', {
+        name: newPlanName.trim(),
+        monthly_price_inr: Number(newPlanPrice),
+        max_employees: Number(newPlanSeats),
+        copilot_access: Boolean(newPlanCopilot),
+        description: newPlanDesc.trim() || 'Custom subscription plan.',
+        features: ['Attrition Prediction ML', 'Core HRIS & Leave Tracking', 'CSV Workforce Import']
+      }, {
+        headers: getAuthHeaders()
+      });
+      alert(`Subscription plan '${newPlanName}' created successfully!`);
+      setIsPlanModalOpen(false);
+      setNewPlanName('');
+      fetchPlans();
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || 'Failed to create plan');
+    } finally {
+      setIsCreatingPlan(false);
+    }
+  };
+
   // Telemetry Modal State
   const [telemetryOrg, setTelemetryOrg] = useState<Organization | null>(null);
   const [telemetryData, setTelemetryData] = useState<TelemetryData | null>(null);
@@ -210,6 +257,7 @@ export default function PlatformAdminDashboard() {
 
   useEffect(() => {
     fetchOrgs();
+    fetchPlans();
     fetchAuditLogs();
     fetchSystemHealth();
   }, []);
@@ -271,6 +319,7 @@ export default function PlatformAdminDashboard() {
       });
 
       await fetchOrgs();
+    fetchPlans();
       await fetchAuditLogs();
       await fetchSystemHealth();
     } catch (err: any) {
@@ -290,6 +339,7 @@ export default function PlatformAdminDashboard() {
         headers: getAuthHeaders()
       });
       await fetchOrgs();
+    fetchPlans();
       await fetchAuditLogs();
       await fetchSystemHealth();
     } catch (err: any) {
@@ -332,6 +382,7 @@ export default function PlatformAdminDashboard() {
       });
       alert(`Tenant "${org.name}" successfully decommissioned.`);
       await fetchOrgs();
+    fetchPlans();
       await fetchAuditLogs();
       await fetchSystemHealth();
     } catch (err: any) {
@@ -369,6 +420,7 @@ export default function PlatformAdminDashboard() {
       });
       setResetAdminModal(null);
       await fetchOrgs();
+    fetchPlans();
       await fetchAuditLogs();
     } catch (err: any) {
       alert(err?.response?.data?.detail || 'Failed to provision admin credentials');
@@ -411,6 +463,7 @@ export default function PlatformAdminDashboard() {
       });
       setTelemetryData(res.data);
       await fetchOrgs();
+    fetchPlans();
       await fetchAuditLogs();
       await fetchSystemHealth();
     } catch (err: any) {
@@ -556,6 +609,13 @@ Password: ${pass}
               <Plus className="h-5 w-5 font-bold" />
               <span>Onboard New Organization</span>
             </button>
+            <button
+              onClick={() => setIsPlanModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-3 bg-purple-600/90 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 active:scale-95 transition-all text-sm border border-purple-400/40"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>+ Create Custom Plan</span>
+            </button>
           </div>
           {/* Background decorative glow */}
           <div className="absolute right-0 top-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
@@ -690,7 +750,8 @@ Password: ${pass}
             </button>
           </div>
           <button
-            onClick={() => { fetchOrgs(); fetchAuditLogs(); fetchSystemHealth(); }}
+            onClick={() => { fetchOrgs();
+    fetchPlans(); fetchAuditLogs(); fetchSystemHealth(); }}
             className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 pb-2 transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -1544,6 +1605,123 @@ Password: ${pass}
                   className="px-4 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Updating...' : 'Update & Issue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {/* ========================================================================= */}
+      {/* MODAL 6: Create Custom Plan Modal */}
+      {/* ========================================================================= */}
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-gray-900 border border-purple-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">Configure New Subscription Plan</h2>
+                  <p className="text-[11px] text-gray-500">Define seat quota, INR pricing, and AI feature tier limits.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPlanModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePlan} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Plan Name (e.g. Growth, Startup, Scale) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Growth Accelerator"
+                  value={newPlanName}
+                  onChange={(e) => setNewPlanName(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Monthly Price (₹ INR) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="5000"
+                    step="1000"
+                    value={newPlanPrice}
+                    onChange={(e) => setNewPlanPrice(Number(e.target.value))}
+                    className="w-full px-3 py-2 font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Workforce Seat Quota *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="10"
+                    step="10"
+                    value={newPlanSeats}
+                    onChange={(e) => setNewPlanSeats(Number(e.target.value))}
+                    className="w-full px-3 py-2 font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800/40">
+                <input
+                  type="checkbox"
+                  id="copilotCheck"
+                  checked={newPlanCopilot}
+                  onChange={(e) => setNewPlanCopilot(e.target.checked)}
+                  className="rounded text-purple-600 focus:ring-purple-500 h-4 w-4"
+                />
+                <label htmlFor="copilotCheck" className="text-gray-700 dark:text-gray-300 font-medium cursor-pointer">
+                  Grant Gemini AI Copilot & Natural Language Reasoning Access
+                </label>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Plan Description & SLA Summary
+                </label>
+                <textarea
+                  rows={2}
+                  value={newPlanDesc}
+                  onChange={(e) => setNewPlanDesc(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setIsPlanModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingPlan}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-md disabled:opacity-50"
+                >
+                  {isCreatingPlan ? 'Creating Plan...' : 'Create & Publish Plan'}
                 </button>
               </div>
             </form>

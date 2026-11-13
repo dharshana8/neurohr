@@ -61,6 +61,16 @@ class CreateTenantRequest(BaseModel):
     admin_email: EmailStr
     admin_password: str
 
+class CreatePlanRequest(BaseModel):
+    name: str
+    tier_key: Optional[str] = None
+    max_employees: int = 150
+    monthly_price_inr: int = 45000
+    max_integrations: int = 5
+    copilot_access: bool = True
+    features: List[str] = ["Attrition Prediction ML", "Core HRIS & Leave Tracking"]
+    description: str = "Custom plan configured by Platform SuperAdmin"
+
 class UpdatePlanRequest(BaseModel):
     plan_tier: str
 
@@ -492,3 +502,62 @@ def update_feature_flags(req: FeatureFlagsRequest, current_user: dict = Depends(
 
     log_platform_audit("FEATURE_FLAGS_UPDATED", "PLATFORM_CORE", "SYSTEM")
     return {"message": "Platform feature flags updated successfully", "settings": PLATFORM_SETTINGS}
+
+# ─── Subscription Plans Governance ──────────────────────────────────────────
+
+@router.get("/plans")
+def get_all_subscription_plans(current_user: dict = Depends(require_superadmin)):
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            custom_plans = list(db["subscription_plans"].find({}, {"_id": 0}))
+            for p in custom_plans:
+                k = (p.get("tier_key") or p.get("name") or "").upper().replace(" ", "_")
+                if k:
+                    TIER_CONFIGS[k] = p
+        except Exception:
+            pass
+    return TIER_CONFIGS
+
+@router.post("/plans")
+def create_subscription_plan(req: CreatePlanRequest, current_user: dict = Depends(require_superadmin)):
+    tier_key = (req.tier_key or req.name).strip().upper().replace(" ", "_")
+    plan_obj = {
+        "tier_key": tier_key,
+        "name": req.name,
+        "max_employees": req.max_employees,
+        "features": req.features,
+        "max_integrations": req.max_integrations,
+        "copilot_access": req.copilot_access,
+        "monthly_price_inr": req.monthly_price_inr,
+        "description": req.description
+    }
+    TIER_CONFIGS[tier_key] = plan_obj
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            db["subscription_plans"].update_one(
+                {"tier_key": tier_key},
+                {"$set": plan_obj},
+                upsert=True
+            )
+        except Exception as e:
+            print("MongoDB save plan failed:", e)
+    log_platform_audit("SUBSCRIPTION_PLAN_CREATED", "PLAN", tier_key)
+    return {"message": f"Plan '{tier_key}' created successfully.", "plan": plan_obj}
+
+@router.delete("/plans/{tier_key}")
+def delete_subscription_plan(tier_key: str, current_user: dict = Depends(require_superadmin)):
+    k = tier_key.upper()
+    if k in ["STARTER", "PROFESSIONAL", "ENTERPRISE"]:
+        raise HTTPException(status_code=400, detail="Standard platform tier cannot be deleted.")
+    if k in TIER_CONFIGS:
+        del TIER_CONFIGS[k]
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            db["subscription_plans"].delete_one({"tier_key": k})
+        except Exception:
+            pass
+    log_platform_audit("SUBSCRIPTION_PLAN_DELETED", "PLAN", k)
+    return {"message": f"Plan '{k}' removed successfully."}
