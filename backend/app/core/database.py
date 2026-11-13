@@ -618,7 +618,7 @@ def mongo_sync_init():
         emp_col = db["employees"]
         sample = emp_col.find_one()
         # If collection is empty OR contains old mock ERP001 records, reseed with clean enterprise records
-        if not sample or str(sample.get("employee_id", "")).startswith("ERP"):
+        if not sample or str(sample.get("employee_id", "")).startswith("ERP") or sample.get("name") == "Employee 1" or emp_col.count_documents({}) < 20:
             emp_col.delete_many({})
             clean_seed = [dict(e) for e in EMPLOYEES]
             emp_col.insert_many(clean_seed)
