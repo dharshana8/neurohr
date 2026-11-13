@@ -4,7 +4,8 @@ import {
   LogOut, Building2, Plus, Copy, Check, Users, Search, 
   RefreshCw, Key, Shield, Eye, EyeOff, AlertCircle,
   Activity, Sparkles, Zap, Lock, CheckCircle2,
-  TrendingUp, Layers, Server, Briefcase, MessageSquare
+  TrendingUp, Layers, Server, Briefcase, MessageSquare,
+  LogIn, Trash2, Sliders, ToggleLeft, ToggleRight, DollarSign, Database, Cpu, ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -75,13 +76,46 @@ interface CreatedCustomerCredentials {
   admin_password: string;
 }
 
+interface SystemHealthData {
+  status: string;
+  uptime_pct: number;
+  api_latency_ms: number;
+  db_cluster: {
+    status: string;
+    type: string;
+    active_connections: number;
+    read_latency_ms: number;
+  };
+  ml_inference_cluster: {
+    engine: string;
+    status: string;
+    avg_prediction_latency_ms: number;
+  };
+  metrics: {
+    total_tenants: number;
+    active_tenants: number;
+    total_cross_tenant_workforce: number;
+    monthly_recurring_revenue_inr: number;
+    ai_tokens_consumed_month: number;
+    total_audit_events: number;
+  };
+  platform_settings: {
+    maintenance_mode: boolean;
+    global_copilot_enabled: boolean;
+    mfa_enforced: boolean;
+    allow_self_registration: boolean;
+    max_tenants_limit: number;
+  };
+}
+
 export default function PlatformAdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'organizations' | 'audit_logs'>('organizations');
+  const [activeTab, setActiveTab] = useState<'organizations' | 'audit_logs' | 'governance'>('organizations');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [systemHealth, setSystemHealth] = useState<SystemHealthData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED'>('ALL');
@@ -92,9 +126,9 @@ export default function PlatformAdminDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [orgName, setOrgName] = useState('');
-  const [industry, setIndustry] = useState('Technology');
+  const [industry, setIndustry] = useState('Technology & AI');
   const [companySize, setCompanySize] = useState('51-200');
-  const [selectedPlanTier, setSelectedPlanTier] = useState<'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'>('STARTER');
+  const [selectedPlanTier, setSelectedPlanTier] = useState<'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'>('PROFESSIONAL');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -116,11 +150,27 @@ export default function PlatformAdminDashboard() {
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
   const [planChangeMsg, setPlanChangeMsg] = useState('');
 
+  // Feature Flags State
+  const [featureFlags, setFeatureFlags] = useState({
+    maintenance_mode: false,
+    global_copilot_enabled: true,
+    mfa_enforced: false,
+    allow_self_registration: false
+  });
+  const [isUpdatingFlag, setIsUpdatingFlag] = useState(false);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   const fetchOrgs = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('http://localhost:8000/api/v1/platform-admin/organizations');
-      setOrganizations(response.data);
+      const res = await axios.get('http://localhost:8000/api/v1/platform-admin/organizations', {
+        headers: getAuthHeaders()
+      });
+      setOrganizations(res.data);
     } catch (error) {
       console.error('Error fetching organizations', error);
     } finally {
@@ -130,16 +180,38 @@ export default function PlatformAdminDashboard() {
 
   const fetchAuditLogs = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/v1/platform-admin/audit-logs');
-      setAuditLogs(response.data);
+      const res = await axios.get('http://localhost:8000/api/v1/platform-admin/audit-logs', {
+        headers: getAuthHeaders()
+      });
+      setAuditLogs(res.data);
     } catch (error) {
       console.error('Error fetching audit logs', error);
+    }
+  };
+
+  const fetchSystemHealth = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/v1/platform-admin/system-health', {
+        headers: getAuthHeaders()
+      });
+      setSystemHealth(res.data);
+      if (res.data.platform_settings) {
+        setFeatureFlags({
+          maintenance_mode: res.data.platform_settings.maintenance_mode,
+          global_copilot_enabled: res.data.platform_settings.global_copilot_enabled,
+          mfa_enforced: res.data.platform_settings.mfa_enforced,
+          allow_self_registration: res.data.platform_settings.allow_self_registration
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching system health', err);
     }
   };
 
   useEffect(() => {
     fetchOrgs();
     fetchAuditLogs();
+    fetchSystemHealth();
   }, []);
 
   const handleLogout = () => {
@@ -158,9 +230,9 @@ export default function PlatformAdminDashboard() {
 
   const openRegisterModal = () => {
     setOrgName('');
-    setIndustry('Technology');
+    setIndustry('Technology & AI');
     setCompanySize('51-200');
-    setSelectedPlanTier('STARTER');
+    setSelectedPlanTier('PROFESSIONAL');
     setAdminEmail('');
     setAdminPassword(generateRandomPassword());
     setFormError('');
@@ -185,6 +257,8 @@ export default function PlatformAdminDashboard() {
         plan_tier: selectedPlanTier,
         admin_email: adminEmail.trim(),
         admin_password: adminPassword
+      }, {
+        headers: getAuthHeaders()
       });
 
       setIsRegisterModalOpen(false);
@@ -198,6 +272,7 @@ export default function PlatformAdminDashboard() {
 
       await fetchOrgs();
       await fetchAuditLogs();
+      await fetchSystemHealth();
     } catch (err: any) {
       setFormError(err?.response?.data?.detail || 'Failed to register organization');
     } finally {
@@ -211,11 +286,56 @@ export default function PlatformAdminDashboard() {
     if (!window.confirm(confirmMsg)) return;
 
     try {
-      await axios.put(`http://localhost:8000/api/v1/platform-admin/organizations/${org.id}/status?status=${newStatus}`);
+      await axios.put(`http://localhost:8000/api/v1/platform-admin/organizations/${org.id}/status?status=${newStatus}`, {}, {
+        headers: getAuthHeaders()
+      });
       await fetchOrgs();
       await fetchAuditLogs();
+      await fetchSystemHealth();
     } catch (err: any) {
       alert(err?.response?.data?.detail || 'Failed to update status');
+    }
+  };
+
+  const handleImpersonateTenant = async (org: Organization) => {
+    const confirmMsg = `Diagnostic Impersonation Mode:\n\nDo you want to log in as Organization Admin for "${org.name}" to audit and troubleshoot their dashboard?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await axios.post(`http://localhost:8000/api/v1/platform-admin/organizations/${org.id}/impersonate`, {}, {
+        headers: getAuthHeaders()
+      });
+      
+      const currentToken = localStorage.getItem('token');
+      localStorage.setItem('superadmin_backup_token', currentToken || '');
+      localStorage.setItem('token', res.data.impersonation_token);
+      
+      alert(`Diagnostic session active for "${org.name}". Launching organization workspace...`);
+      window.location.href = '/dashboard/overview';
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || 'Failed to initiate tenant impersonation');
+    }
+  };
+
+  const handleDeleteTenant = async (org: Organization) => {
+    if (org.id === 'org_acme_corp') {
+      alert('Default demo tenant "Acme Corporation" is locked and cannot be deleted.');
+      return;
+    }
+
+    const confirmMsg = `CRITICAL ACTION:\n\nAre you sure you want to DECOMMISSION and DELETE "${org.name}" (${org.id})?\n\nThis will remove all tenant mappings from the platform.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await axios.delete(`http://localhost:8000/api/v1/platform-admin/organizations/${org.id}`, {
+        headers: getAuthHeaders()
+      });
+      alert(`Tenant "${org.name}" successfully decommissioned.`);
+      await fetchOrgs();
+      await fetchAuditLogs();
+      await fetchSystemHealth();
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || 'Failed to delete tenant');
     }
   };
 
@@ -238,6 +358,8 @@ export default function PlatformAdminDashboard() {
       await axios.post(`http://localhost:8000/api/v1/platform-admin/organizations/${resetAdminModal.orgId}/admin`, {
         email: newAdminEmail.trim(),
         password: newAdminPassword
+      }, {
+        headers: getAuthHeaders()
       });
 
       setResetSuccessCredentials({
@@ -261,7 +383,9 @@ export default function PlatformAdminDashboard() {
     setPlanChangeMsg('');
     setIsLoadingTelemetry(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/v1/platform-admin/organizations/${org.id}/telemetry`);
+      const res = await axios.get(`http://localhost:8000/api/v1/platform-admin/organizations/${org.id}/telemetry`, {
+        headers: getAuthHeaders()
+      });
       setTelemetryData(res.data);
     } catch (err: any) {
       alert(err?.response?.data?.detail || 'Failed to fetch customer telemetry');
@@ -277,19 +401,38 @@ export default function PlatformAdminDashboard() {
       setIsUpdatingPlan(true);
       setPlanChangeMsg('');
       await axios.put(`http://localhost:8000/api/v1/platform-admin/organizations/${telemetryOrg.id}/plan`, {
-        plan_tier: newTier,
-        subscription_status: 'ACTIVE'
+        plan_tier: newTier
+      }, {
+        headers: getAuthHeaders()
       });
       setPlanChangeMsg(`Plan successfully updated to ${newTier}!`);
-      // Refresh telemetry
-      const res = await axios.get(`http://localhost:8000/api/v1/platform-admin/organizations/${telemetryOrg.id}/telemetry`);
+      const res = await axios.get(`http://localhost:8000/api/v1/platform-admin/organizations/${telemetryOrg.id}/telemetry`, {
+        headers: getAuthHeaders()
+      });
       setTelemetryData(res.data);
       await fetchOrgs();
       await fetchAuditLogs();
+      await fetchSystemHealth();
     } catch (err: any) {
       alert(err?.response?.data?.detail || 'Failed to update plan tier');
     } finally {
       setIsUpdatingPlan(false);
+    }
+  };
+
+  const handleToggleFeatureFlag = async (key: string, currentVal: boolean) => {
+    try {
+      setIsUpdatingFlag(true);
+      const payload = { [key]: !currentVal };
+      const res = await axios.put('http://localhost:8000/api/v1/platform-admin/feature-flags', payload, {
+        headers: getAuthHeaders()
+      });
+      setFeatureFlags(res.data.settings);
+      await fetchAuditLogs();
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || 'Failed to update feature flag');
+    } finally {
+      setIsUpdatingFlag(false);
     }
   };
 
@@ -318,18 +461,21 @@ Password: ${pass}
         return {
           label: 'Enterprise',
           badgeClass: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold shadow-sm',
+          price: '₹2,50,000 / mo',
           icon: <Sparkles className="h-3 w-3" />
         };
       case 'PROFESSIONAL':
         return {
           label: 'Professional',
           badgeClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold',
+          price: '₹85,000 / mo',
           icon: <Zap className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
         };
       default:
         return {
           label: 'Starter',
           badgeClass: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700 font-semibold',
+          price: '₹25,000 / mo',
           icon: <Layers className="h-3 w-3 text-gray-500" />
         };
     }
@@ -338,6 +484,7 @@ Password: ${pass}
   const activeCount = organizations.filter(o => o.status === 'ACTIVE').length;
   const suspendedCount = organizations.filter(o => o.status === 'SUSPENDED').length;
   const totalEmployees = organizations.reduce((acc, o) => acc + (o.employee_count || 0), 0);
+  const mrrInr = systemHealth?.metrics?.monthly_recurring_revenue_inr || 610000;
 
   const filteredOrgs = organizations.filter(org => {
     const matchesSearch = 
@@ -361,18 +508,18 @@ Password: ${pass}
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight">
-                NeuroHR <span className="text-indigo-600 dark:text-indigo-400">Platform Admin</span>
+                NeuroHR <span className="text-indigo-600 dark:text-indigo-400">Platform Command Center</span>
               </span>
               <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                SuperAdmin
+                SuperAdmin Root
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-semibold">{user?.email}</p>
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-medium">PLATFORM_ADMIN</p>
+              <p className="text-sm font-semibold">{user?.email || 'admin@neurohr.com'}</p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-medium">SUPERADMIN_ROOT</p>
             </div>
             <button
               onClick={handleLogout}
@@ -389,29 +536,64 @@ Password: ${pass}
       {/* Main Content Area */}
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Banner with Primary Call to Action */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white p-6 sm:p-8 rounded-2xl shadow-lg relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white p-6 sm:p-8 rounded-2xl shadow-xl relative overflow-hidden border border-indigo-800/40">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/20 text-white tracking-wide uppercase backdrop-blur-sm">
-                Subscription & Tenant Management
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/30 text-indigo-200 tracking-wide uppercase backdrop-blur-sm border border-indigo-400/30">
+                Multi-Tenant Governance & Revenue Hub
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">SuperAdmin Management Center</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Platform SuperAdmin Control Center</h1>
             <p className="text-indigo-200 text-sm sm:text-base mt-1 max-w-2xl">
-              Register customer tenant organizations with multi-tier subscription plans (Starter, Professional, Enterprise), provision administrator credentials, and monitor customer performance and usage telemetry with strict privacy protection.
+              Full administrative authority to provision customer organizations, manage subscriptions in Indian Rupees (₹), rotate tenant credentials, impersonate tenant sessions for troubleshooting, and govern global system telemetry.
             </p>
           </div>
           <div className="relative z-10 flex flex-wrap gap-3">
             <button
               onClick={openRegisterModal}
-              className="flex items-center gap-2 px-5 py-3 bg-white text-indigo-900 font-bold rounded-xl shadow-md hover:bg-indigo-50 active:scale-95 transition-all text-sm"
+              className="flex items-center gap-2 px-5 py-3 bg-indigo-500 hover:bg-indigo-400 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 active:scale-95 transition-all text-sm"
             >
-              <Plus className="h-5 w-5 text-indigo-600 font-bold" />
-              <span>Register New Organization</span>
+              <Plus className="h-5 w-5 font-bold" />
+              <span>Onboard New Organization</span>
             </button>
           </div>
           {/* Background decorative glow */}
           <div className="absolute right-0 top-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        </div>
+
+        {/* Global Live System SLA & Infrastructure Bar */}
+        <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-sm text-xs">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="font-bold">System SLA:</span>
+              <span className="text-emerald-400 font-mono font-bold">99.98% Operational</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Activity className="h-3.5 w-3.5 text-indigo-400" />
+              <span>API Latency:</span>
+              <span className="font-mono text-indigo-300 font-bold">{systemHealth?.api_latency_ms || 32}ms</span>
+            </div>
+            <div className="hidden md:flex items-center gap-2">
+              <Database className="h-3.5 w-3.5 text-blue-400" />
+              <span>MongoDB ReplicaSet:</span>
+              <span className="text-blue-300 font-bold">Healthy (14 conns)</span>
+            </div>
+            <div className="hidden lg:flex items-center gap-2">
+              <Cpu className="h-3.5 w-3.5 text-purple-400" />
+              <span>ML Random Forest:</span>
+              <span className="text-purple-300 font-bold">Optimal (11ms)</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 font-mono">
+              <span className="text-gray-400">Monthly Recurring Revenue:</span>{' '}
+              <span className="text-emerald-400 font-bold">₹{mrrInr.toLocaleString('en-IN')}/mo</span>
+            </div>
+          </div>
         </div>
 
         {/* Top Metric Cards */}
@@ -460,13 +642,15 @@ Password: ${pass}
 
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tenant Data Privacy</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Platform MRR (INR)</span>
               <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600">
-                <Lock className="h-5 w-5" />
+                <DollarSign className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-2">Zero PII Leakage</div>
-            <p className="text-xs text-gray-500 mt-2">SuperAdmin sees operational telemetry; private PII strictly isolated</p>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-2 font-mono">
+              ₹{(mrrInr / 100000).toFixed(2)} Lakhs
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Total recurring revenue per month</p>
           </div>
         </div>
 
@@ -493,9 +677,20 @@ Password: ${pass}
             >
               Platform Audit Logs ({auditLogs.length})
             </button>
+            <button
+              onClick={() => setActiveTab('governance')}
+              className={`pb-3 px-4 font-bold text-sm border-b-2 transition-colors flex items-center gap-1.5 ${
+                activeTab === 'governance'
+                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              <Sliders className="h-3.5 w-3.5" />
+              <span>Platform Governance & Controls</span>
+            </button>
           </div>
           <button
-            onClick={() => { fetchOrgs(); fetchAuditLogs(); }}
+            onClick={() => { fetchOrgs(); fetchAuditLogs(); fetchSystemHealth(); }}
             className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 pb-2 transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -519,108 +714,103 @@ Password: ${pass}
                 />
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-                {/* Status Filter */}
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-gray-500 font-medium">Status:</span>
-                  {(['ALL', 'ACTIVE', 'SUSPENDED'] as const).map((st) => (
-                    <button
-                      key={st}
-                      onClick={() => setStatusFilter(st)}
-                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition ${
-                        statusFilter === st
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg font-medium"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active Only</option>
+                  <option value="SUSPENDED">Suspended Only</option>
+                </select>
 
-                {/* Plan Tier Filter */}
-                <div className="flex items-center gap-1.5 text-xs border-l border-gray-200 dark:border-gray-700 pl-3">
-                  <span className="text-gray-500 font-medium">Plan:</span>
-                  {(['ALL', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as const).map((pt) => (
-                    <button
-                      key={pt}
-                      onClick={() => setTierFilter(pt)}
-                      className={`px-2 py-1 rounded-md text-xs font-semibold transition ${
-                        tierFilter === pt
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
-                      }`}
-                    >
-                      {pt === 'ALL' ? 'All Plans' : pt.slice(0, 3)}
-                    </button>
-                  ))}
-                </div>
+                <select
+                  value={tierFilter}
+                  onChange={(e) => setTierFilter(e.target.value as any)}
+                  className="px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg font-medium"
+                >
+                  <option value="ALL">All Subscription Tiers</option>
+                  <option value="STARTER">Starter Tier</option>
+                  <option value="PROFESSIONAL">Professional Tier</option>
+                  <option value="ENTERPRISE">Enterprise Tier</option>
+                </select>
               </div>
             </div>
 
-            {/* Organizations Table / List */}
+            {/* Organizations Cards List */}
             <div className="divide-y divide-gray-200 dark:divide-gray-800">
               {isLoading ? (
                 <div className="p-12 text-center text-gray-500">
                   <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-indigo-600" />
-                  Loading tenant organizations...
+                  Loading customer tenant organizations...
                 </div>
               ) : filteredOrgs.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
-                  <Building2 className="h-10 w-10 mx-auto mb-3 text-gray-300 dark:text-gray-700" />
-                  <p className="font-semibold text-base">No matching organizations found.</p>
-                  <p className="text-xs mt-1">Click "Register New Organization" to add a customer organization.</p>
+                  <Building2 className="h-10 w-10 mx-auto mb-2 text-gray-400" />
+                  <p className="font-semibold">No customer organizations found</p>
+                  <p className="text-xs text-gray-400 mt-1">Try changing your search terms or filters</p>
                 </div>
               ) : (
                 filteredOrgs.map((org) => {
-                  const planBadge = getPlanBadge(org.plan_tier);
+                  const plan = getPlanBadge(org.plan_tier);
                   return (
-                    <div key={org.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                          <h3 className="text-base font-bold text-gray-900 dark:text-white">{org.name}</h3>
-                          
+                    <div
+                      key={org.id}
+                      className="p-5 sm:p-6 hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    >
+                      {/* Left: Org Info */}
+                      <div className="space-y-1.5 max-w-xl">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            {org.name}
+                          </h3>
+
                           {/* Plan Badge */}
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs ${planBadge.badgeClass}`}>
-                            {planBadge.icon}
-                            <span>{planBadge.label}</span>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] ${plan.badgeClass}`}>
+                            {plan.icon}
+                            {plan.label}
                           </span>
 
                           {/* Status Badge */}
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            org.status === 'ACTIVE' 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400 border border-red-200 dark:border-red-800'
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            org.status === 'ACTIVE'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                           }`}>
                             {org.status}
                           </span>
 
-                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                            {org.industry || 'General Industry'}
+                          <span className="text-xs text-emerald-600 font-mono font-bold">
+                            {plan.price}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span>
-                            Customer Admin: <strong className="text-gray-800 dark:text-gray-200">{org.admin_email || 'No admin created'}</strong>
-                          </span>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span>{org.industry || 'General Industry'}</span>
                           <span>•</span>
-                          <span>
-                            Employees: <strong className="text-gray-800 dark:text-gray-200">{org.employee_count}</strong>
-                          </span>
+                          <span>Customer Admin: <strong className="text-gray-700 dark:text-gray-300 font-mono">{org.admin_email || 'Not configured'}</strong></span>
                           <span>•</span>
-                          <span>
-                            Company Size: <strong className="text-gray-800 dark:text-gray-200">{org.company_size || 'N/A'}</strong>
-                          </span>
+                          <span>Employees: <strong>{org.employee_count}</strong></span>
                           <span>•</span>
-                          <span className="font-mono text-[11px] text-gray-400">
-                            ID: {org.id}
-                          </span>
-                        </div>
+                          <span>Company Size: {org.company_size || 'N/A'}</span>
+                          <span>•</span>
+                          <span className="font-mono text-[11px] text-gray-400">ID: {org.id}</span>
+                        </p>
                       </div>
 
                       {/* Action Buttons */}
                       <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
+                        {/* Impersonate / Login as Tenant Button */}
+                        <button
+                          onClick={() => handleImpersonateTenant(org)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-800 transition shadow-sm"
+                          title="Log in directly as Tenant Admin to diagnose issues in customer workspace"
+                        >
+                          <LogIn className="h-3.5 w-3.5 text-blue-600" />
+                          <span>Login as Tenant</span>
+                        </button>
+
                         {/* Telemetry & Performance Button */}
                         <button
                           onClick={() => handleOpenTelemetry(org)}
@@ -644,12 +834,23 @@ Password: ${pass}
                           onClick={() => handleToggleStatus(org)}
                           className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${
                             org.status === 'ACTIVE'
-                              ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900'
+                              ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 border-amber-200 dark:border-amber-900'
                               : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900'
                           }`}
                         >
                           {org.status === 'ACTIVE' ? 'Suspend Tenant' : 'Activate Tenant'}
                         </button>
+
+                        {/* Decommission Tenant Button */}
+                        {org.id !== 'org_acme_corp' && (
+                          <button
+                            onClick={() => handleDeleteTenant(org)}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg border border-transparent hover:border-red-200 transition"
+                            title="Decommission & Delete Tenant"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -704,6 +905,103 @@ Password: ${pass}
             </div>
           </div>
         )}
+
+        {/* TAB 3: Platform Governance & Feature Controls */}
+        {activeTab === 'governance' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Sliders className="h-5 w-5 text-indigo-600" />
+                Global Platform Governance & Kill-Switches
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Configure platform-wide security policies, emergency kill-switches, and automated onboarding restrictions.
+              </p>
+
+              <div className="mt-6 divide-y divide-gray-200 dark:divide-gray-800">
+                {/* Maintenance Mode */}
+                <div className="py-4 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white">Emergency Maintenance Mode</h4>
+                    <p className="text-xs text-gray-500">Locks tenant user logins and displays scheduled maintenance notice across all portals.</p>
+                  </div>
+                  <button
+                    disabled={isUpdatingFlag}
+                    onClick={() => handleToggleFeatureFlag('maintenance_mode', featureFlags.maintenance_mode)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition ${
+                      featureFlags.maintenance_mode 
+                        ? 'bg-red-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    }`}
+                  >
+                    {featureFlags.maintenance_mode ? <ToggleRight className="h-5 w-5 text-white" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                    <span>{featureFlags.maintenance_mode ? 'ENABLED (LOCKED)' : 'DISABLED'}</span>
+                  </button>
+                </div>
+
+                {/* Global AI Copilot */}
+                <div className="py-4 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white">Global AI & Copilot Engine</h4>
+                    <p className="text-xs text-gray-500">Allows customer organizations with Professional/Enterprise licenses to execute Grok AI queries.</p>
+                  </div>
+                  <button
+                    disabled={isUpdatingFlag}
+                    onClick={() => handleToggleFeatureFlag('global_copilot_enabled', featureFlags.global_copilot_enabled)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition ${
+                      featureFlags.global_copilot_enabled 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    }`}
+                  >
+                    {featureFlags.global_copilot_enabled ? <ToggleRight className="h-5 w-5 text-white" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                    <span>{featureFlags.global_copilot_enabled ? 'ONLINE & ACTIVE' : 'PAUSED'}</span>
+                  </button>
+                </div>
+
+                {/* MFA Enforced */}
+                <div className="py-4 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white">Mandatory Multi-Factor Authentication (MFA)</h4>
+                    <p className="text-xs text-gray-500">Enforces two-factor cryptographic challenge for all customer Organization Admins.</p>
+                  </div>
+                  <button
+                    disabled={isUpdatingFlag}
+                    onClick={() => handleToggleFeatureFlag('mfa_enforced', featureFlags.mfa_enforced)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition ${
+                      featureFlags.mfa_enforced 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    }`}
+                  >
+                    {featureFlags.mfa_enforced ? <ToggleRight className="h-5 w-5 text-white" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                    <span>{featureFlags.mfa_enforced ? 'ENFORCED' : 'OPTIONAL'}</span>
+                  </button>
+                </div>
+
+                {/* Self Registration */}
+                <div className="py-4 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white">Public Self-Registration Gateway</h4>
+                    <p className="text-xs text-gray-500">Allows public companies to register Starter tier trials directly from platform home page.</p>
+                  </div>
+                  <button
+                    disabled={isUpdatingFlag}
+                    onClick={() => handleToggleFeatureFlag('allow_self_registration', featureFlags.allow_self_registration)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition ${
+                      featureFlags.allow_self_registration 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    }`}
+                  >
+                    {featureFlags.allow_self_registration ? <ToggleRight className="h-5 w-5 text-white" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                    <span>{featureFlags.allow_self_registration ? 'OPEN FOR SIGNUP' : 'INVITE/ADMIN ONLY'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ========================================================================= */}
@@ -716,7 +1014,7 @@ Password: ${pass}
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-indigo-600" />
-                  Register Customer Organization
+                  Onboard Customer Organization
                 </h2>
                 <button
                   onClick={() => setIsRegisterModalOpen(false)}
@@ -726,7 +1024,7 @@ Password: ${pass}
                 </button>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Creates an isolated tenant organization, assigns an operational subscription plan, and provisions initial customer administrator credentials.
+                Provisions a dedicated multi-tenant boundary, binds a subscription plan with Indian Rupee (₹) billing, and configures administrator credentials.
               </p>
             </div>
 
@@ -740,12 +1038,12 @@ Password: ${pass}
             <form onSubmit={handleRegisterTenant} className="space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Organization Name *
+                  Organization Legal Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Acme Corporation"
+                  placeholder="e.g. Acme Corporation or Bharat Tech Labs"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
@@ -754,47 +1052,47 @@ Password: ${pass}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Industry
+                  <label className="block font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Industry Domain
                   </label>
                   <select
                     value={industry}
                     onChange={(e) => setIndustry(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
                   >
-                    <option value="Technology">Technology</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="Finance">Finance / Banking</option>
-                    <option value="Manufacturing">Manufacturing</option>
-                    <option value="Retail">Retail</option>
-                    <option value="Education">Education</option>
-                    <option value="Other">Other</option>
+                    <option value="Technology & AI">Technology & AI</option>
+                    <option value="FinTech & Banking">FinTech & Banking</option>
+                    <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
+                    <option value="Healthcare & Life Sciences">Healthcare & Life Sciences</option>
+                    <option value="Automotive & Robotics">Automotive & Robotics</option>
+                    <option value="E-Commerce & Retail">E-Commerce & Retail</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Company Size
+                  <label className="block font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Workforce Company Size
                   </label>
                   <select
                     value={companySize}
                     onChange={(e) => setCompanySize(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
                   >
-                    <option value="1-50">1 - 50 employees</option>
-                    <option value="51-200">51 - 200 employees</option>
-                    <option value="201-1000">201 - 1000 employees</option>
-                    <option value="1000+">1000+ employees</option>
+                    <option value="1-10">1-10 Employees</option>
+                    <option value="11-50">11-50 Employees</option>
+                    <option value="51-200">51-200 Employees</option>
+                    <option value="201-1000">201-1000 Employees</option>
+                    <option value="1000+">1000+ Global Enterprise</option>
                   </select>
                 </div>
               </div>
 
-              {/* Subscription Plan Tier Selector */}
+              {/* Plan Tier Selector */}
               <div>
-                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                  <span>Assigned Subscription Plan *</span>
-                  <span className="text-[11px] font-normal text-gray-500">Determines quota limits and feature access</span>
+                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  Select Subscription Tier (Billed in INR ₹) *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-3 gap-2.5">
                   {/* STARTER */}
                   <div
                     onClick={() => setSelectedPlanTier('STARTER')}
@@ -808,7 +1106,8 @@ Password: ${pass}
                       <span className="font-bold text-sm text-gray-900 dark:text-white">Starter</span>
                       {selectedPlanTier === 'STARTER' && <CheckCircle2 className="h-4 w-4 text-indigo-600" />}
                     </div>
-                    <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Up to 50 employees</p>
+                    <p className="text-[12px] font-mono font-bold text-emerald-600">₹25,000 / mo</p>
+                    <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">Up to 50 seats</p>
                     <p className="text-[10px] text-gray-500 mt-1">Core workforce, CSV import, attrition risk engine.</p>
                   </div>
 
@@ -825,8 +1124,9 @@ Password: ${pass}
                       <span className="font-bold text-sm text-gray-900 dark:text-white">Professional</span>
                       {selectedPlanTier === 'PROFESSIONAL' && <CheckCircle2 className="h-4 w-4 text-indigo-600" />}
                     </div>
-                    <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Up to 250 employees</p>
-                    <p className="text-[10px] text-gray-500 mt-1">Starter + ATS, Skill gap, sentiment NLP & 1 integration.</p>
+                    <p className="text-[12px] font-mono font-bold text-emerald-600">₹85,000 / mo</p>
+                    <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">Up to 300 seats</p>
+                    <p className="text-[10px] text-gray-500 mt-1">ERP sync, HRIS leave AI, sentiment & Copilot.</p>
                   </div>
 
                   {/* ENTERPRISE */}
@@ -844,8 +1144,9 @@ Password: ${pass}
                       </span>
                       {selectedPlanTier === 'ENTERPRISE' && <CheckCircle2 className="h-4 w-4 text-purple-600" />}
                     </div>
-                    <p className="text-[11px] font-bold text-purple-600 dark:text-purple-400">Up to 5,000 employees</p>
-                    <p className="text-[10px] text-gray-500 mt-1">Grok AI Copilot, RAG, unlimited integrations & insights.</p>
+                    <p className="text-[12px] font-mono font-bold text-emerald-600">₹2,50,000 / mo</p>
+                    <p className="text-[11px] font-bold text-purple-600 dark:text-purple-400 mt-1">Up to 5,000 seats</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Unlimited integrations, custom ML, dedicated SLA.</p>
                   </div>
                 </div>
               </div>
@@ -853,7 +1154,7 @@ Password: ${pass}
               <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
                 <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-2 flex items-center gap-1.5">
                   <Key className="h-4 w-4 text-indigo-600" />
-                  Initial Customer Admin Credentials
+                  Initial Customer Administrator Credentials
                 </h3>
 
                 <div className="space-y-3">
@@ -864,7 +1165,7 @@ Password: ${pass}
                     <input
                       type="email"
                       required
-                      placeholder="e.g. hr-admin@acme.com"
+                      placeholder="e.g. admin@acmecorp.com"
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
@@ -881,7 +1182,7 @@ Password: ${pass}
                         onClick={() => setAdminPassword(generateRandomPassword())}
                         className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
                       >
-                        Generate New Password
+                        Generate Secure Password
                       </button>
                     </div>
                     <div className="relative">
@@ -917,7 +1218,7 @@ Password: ${pass}
                   disabled={isSubmitting}
                   className="px-5 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-50 shadow-md shadow-indigo-500/20"
                 >
-                  {isSubmitting ? 'Registering...' : 'Register & Create Credentials'}
+                  {isSubmitting ? 'Provisioning Tenant...' : 'Onboard & Generate Credentials'}
                 </button>
               </div>
             </form>
@@ -935,9 +1236,9 @@ Password: ${pass}
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300 mb-2">
                 <Check className="h-6 w-6 stroke-[3]" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Organization Registered Successfully!</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Organization Provisioned Successfully!</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Copy and deliver the customer access credentials below with their assigned plan tier.
+                Copy and deliver the customer access credentials below to the organization administrator.
               </p>
             </div>
 
@@ -948,6 +1249,10 @@ Password: ${pass}
                 <span className="font-bold text-gray-900 dark:text-white">{credentialsModal.organization_name}</span>
               </div>
               <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <span className="text-gray-500 font-sans font-medium">Tenant ID:</span>
+                <span className="text-gray-400">{credentialsModal.organization_id}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
                 <span className="text-gray-500 font-sans font-medium">Subscription Plan:</span>
                 <span className="font-bold text-indigo-600 dark:text-indigo-400">{credentialsModal.plan_tier}</span>
               </div>
@@ -956,7 +1261,7 @@ Password: ${pass}
                 <span className="text-indigo-600 dark:text-indigo-400 font-bold">http://localhost:5173/login</span>
               </div>
               <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
-                <span className="text-gray-500 font-sans font-medium">Customer Admin Email:</span>
+                <span className="text-gray-500 font-sans font-medium">Admin Email:</span>
                 <span className="font-bold text-gray-900 dark:text-white">{credentialsModal.admin_email}</span>
               </div>
               <div className="flex justify-between">
@@ -1048,170 +1353,120 @@ Password: ${pass}
                 {/* Plan Management Strip */}
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Current Subscription</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs ${getPlanBadge(telemetryData.plan_tier).badgeClass}`}>
-                        {getPlanBadge(telemetryData.plan_tier).icon}
-                        <span>{telemetryData.plan_tier} PLAN</span>
+                    <span className="text-xs text-gray-500 font-medium">Assigned Tier:</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-base font-bold text-gray-900 dark:text-white">
+                        {telemetryData.plan_tier} Tier
                       </span>
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded">
-                        {telemetryData.subscription_status}
+                      <span className="text-xs text-emerald-600 font-mono font-bold">
+                        {getPlanBadge(telemetryData.plan_tier).price}
                       </span>
                     </div>
                   </div>
 
-                  {/* Change Plan Controls */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 font-medium">Switch Plan:</span>
-                    {(['STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as const).map((tier) => (
-                      <button
-                        key={tier}
-                        disabled={isUpdatingPlan || telemetryData.plan_tier === tier}
-                        onClick={() => handleUpdatePlanTier(tier)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                          telemetryData.plan_tier === tier
-                            ? 'bg-indigo-600 text-white shadow-sm'
-                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 border border-gray-300 dark:border-gray-600 disabled:opacity-50'
-                        }`}
-                      >
-                        {tier.slice(0, 3)}
-                      </button>
-                    ))}
+                    <span className="text-xs text-gray-500 font-medium">Change Plan:</span>
+                    <div className="flex items-center gap-1.5">
+                      {(['STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as const).map((tier) => (
+                        <button
+                          key={tier}
+                          disabled={isUpdatingPlan || telemetryData.plan_tier.toUpperCase() === tier}
+                          onClick={() => handleUpdatePlanTier(tier)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition ${
+                            telemetryData.plan_tier.toUpperCase() === tier
+                              ? 'bg-indigo-600 text-white border-indigo-600 cursor-default'
+                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {tier}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {planChangeMsg && (
-                  <div className="p-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                    <Check className="h-4 w-4" />
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
                     <span>{planChangeMsg}</span>
                   </div>
                 )}
 
-                {/* Seat Capacity Progress */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-gray-700 dark:text-gray-300">Employee Seat Allocation</span>
-                    <span className="font-mono text-gray-500">
-                      <strong>{telemetryData.seat_capacity.current_employees}</strong> / {telemetryData.seat_capacity.max_employees} seats used ({telemetryData.seat_capacity.utilization_pct}%)
+                {/* Seat Capacity Bar */}
+                <div className="p-4 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">Workforce Seat Capacity Utilization</span>
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      {telemetryData.seat_capacity.current_employees} / {telemetryData.seat_capacity.max_employees} Seats ({telemetryData.seat_capacity.utilization_pct}%)
                     </span>
                   </div>
-                  <div className="w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${
+                      className={`h-full transition-all rounded-full ${
                         telemetryData.seat_capacity.utilization_pct > 90
                           ? 'bg-red-500'
                           : telemetryData.seat_capacity.utilization_pct > 70
                           ? 'bg-amber-500'
-                          : 'bg-gradient-to-r from-indigo-500 to-purple-600'
+                          : 'bg-indigo-600'
                       }`}
                       style={{ width: `${Math.min(telemetryData.seat_capacity.utilization_pct, 100)}%` }}
-                    />
+                    ></div>
                   </div>
-                  <p className="text-[11px] text-gray-400">
-                    {telemetryData.plan_limits.description}
-                  </p>
                 </div>
 
-                {/* Performance & Activity Telemetry Grid */}
+                {/* Operational Activity Grid */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2.5">
-                    Operational Adoption & Feature Activity Counters
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+                    Aggregated Operational Metrics
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="p-3.5 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-indigo-600 mb-1">
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Attrition Analyses</span>
-                        <TrendingUp className="h-4 w-4" />
-                      </div>
-                      <div className="text-2xl font-black">{telemetryData.activity_metrics.attrition_predictions_count}</div>
-                      <span className="text-[10px] text-gray-400">Model inference runs</span>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-500 font-medium">Predictions Executed</span>
+                      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white font-mono">
+                        {telemetryData.activity_metrics.attrition_predictions_count}
+                      </p>
                     </div>
 
-                    <div className="p-3.5 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-blue-600 mb-1">
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Jobs Posted</span>
-                        <Briefcase className="h-4 w-4" />
-                      </div>
-                      <div className="text-2xl font-black">{telemetryData.activity_metrics.jobs_posted_count}</div>
-                      <span className="text-[10px] text-gray-400">Recruitment positions</span>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-500 font-medium">Requisitions Posted</span>
+                      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white font-mono">
+                        {telemetryData.activity_metrics.jobs_posted_count}
+                      </p>
                     </div>
 
-                    <div className="p-3.5 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-cyan-600 mb-1">
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Candidates Processed</span>
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <div className="text-2xl font-black">{telemetryData.activity_metrics.candidates_tracked_count}</div>
-                      <span className="text-[10px] text-gray-400">Tracked in ATS pipeline</span>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-500 font-medium">Candidates Screened</span>
+                      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white font-mono">
+                        {telemetryData.activity_metrics.candidates_tracked_count}
+                      </p>
                     </div>
 
-                    <div className="p-3.5 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-purple-600 mb-1">
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Sentiment Surveys</span>
-                        <MessageSquare className="h-4 w-4" />
-                      </div>
-                      <div className="text-2xl font-black">{telemetryData.activity_metrics.sentiment_surveys_logged}</div>
-                      <span className="text-[10px] text-gray-400">Workplace survey inputs</span>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-500 font-medium">Surveys Analyzed</span>
+                      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white font-mono">
+                        {telemetryData.activity_metrics.sentiment_surveys_logged}
+                      </p>
                     </div>
 
-                    <div className="p-3.5 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-amber-600 mb-1">
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Active Integrations</span>
-                        <Server className="h-4 w-4" />
-                      </div>
-                      <div className="text-2xl font-black">
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-500 font-medium">Connectors Active</span>
+                      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white font-mono">
                         {telemetryData.activity_metrics.integrations_connected}
-                        <span className="text-xs font-normal text-gray-400 ml-1">/ {telemetryData.plan_limits.max_integrations === 99 ? '∞' : telemetryData.plan_limits.max_integrations} max</span>
-                      </div>
-                      <span className="text-[10px] text-gray-400">Data source connectors</span>
+                      </p>
                     </div>
 
-                    <div className="p-3.5 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-emerald-600 mb-1">
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Audit Events</span>
-                        <Shield className="h-4 w-4" />
-                      </div>
-                      <div className="text-2xl font-black">{telemetryData.activity_metrics.audit_events_logged}</div>
-                      <span className="text-[10px] text-gray-400">Security & tenant actions</span>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-500 font-medium">Audit Events Recorded</span>
+                      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white font-mono">
+                        {telemetryData.activity_metrics.audit_events_logged}
+                      </p>
                     </div>
                   </div>
-                </div>
-
-                {/* Feature Entitlement Checklist */}
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    Unlocked Plan Feature Entitlements
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {telemetryData.plan_limits.features.map((feat) => (
-                      <span
-                        key={feat}
-                        className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 flex items-center gap-1"
-                      >
-                        <Check className="h-3 w-3 text-emerald-500" />
-                        {feat.replace(/_/g, ' ')}
-                      </span>
-                    ))}
-                    {telemetryData.plan_limits.copilot_access && (
-                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1">
-                        <Sparkles className="h-3 w-3 text-purple-600" />
-                        Grok AI Copilot Enabled
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Last Active Timestamp */}
-                <div className="text-[11px] text-gray-400 border-t border-gray-200 dark:border-gray-800 pt-3 flex items-center justify-between">
-                  <span>Last Tenant System Activity:</span>
-                  <span className="font-mono font-semibold text-gray-600 dark:text-gray-300">
-                    {telemetryData.last_activity ? new Date(telemetryData.last_activity).toLocaleString() : 'No activity logged yet'}
-                  </span>
                 </div>
               </div>
             ) : null}
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-3 border-t border-gray-200 dark:border-gray-800">
               <button
                 onClick={() => setTelemetryOrg(null)}
                 className="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition"
@@ -1224,31 +1479,26 @@ Password: ${pass}
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 4: Reset / Provision Admin for Existing Organization */}
+      {/* MODAL 4: Reset & Issue Admin Credentials Modal */}
       {/* ========================================================================= */}
       {resetAdminModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Issue Admin Credentials
-                </h3>
-                <button
-                  onClick={() => setResetAdminModal(null)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm font-bold"
-                >
-                  ✕
-                </button>
-              </div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Key className="h-5 w-5 text-indigo-600" />
+                Issue Customer Admin Credentials
+              </h2>
               <p className="text-xs text-gray-500 mt-1">
-                Organization: <strong>{resetAdminModal.orgName}</strong>
+                Rotates or updates the customer administrator account for <strong>{resetAdminModal.orgName}</strong>.
               </p>
             </div>
 
             <form onSubmit={handleSaveAdminCredentials} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium mb-1">Customer Admin Email</label>
+                <label className="block font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Customer Admin Email *
+                </label>
                 <input
                   type="email"
                   required
@@ -1259,14 +1509,16 @@ Password: ${pass}
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-medium">New Password</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-medium text-gray-600 dark:text-gray-400">
+                    New Secure Password *
+                  </label>
                   <button
                     type="button"
                     onClick={() => setNewAdminPassword(generateRandomPassword())}
-                    className="text-[11px] text-indigo-600 hover:underline"
+                    className="text-[11px] text-indigo-600 hover:underline font-semibold"
                   >
-                    Generate Random
+                    Generate New
                   </button>
                 </div>
                 <input
@@ -1282,16 +1534,16 @@ Password: ${pass}
                 <button
                   type="button"
                   onClick={() => setResetAdminModal(null)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                  className="px-4 py-2 text-xs font-semibold rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-1.5 font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Saving...' : 'Update & Issue'}
+                  {isSubmitting ? 'Updating...' : 'Update & Issue'}
                 </button>
               </div>
             </form>
@@ -1300,41 +1552,29 @@ Password: ${pass}
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 5: Reset Success View */}
+      {/* MODAL 5: Reset Admin Success Modal */}
       {/* ========================================================================= */}
       {resetSuccessCredentials && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="text-center">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-2">
-                <Check className="h-5 w-5 stroke-[3]" />
-              </div>
-              <h3 className="text-lg font-bold">Admin Credentials Updated!</h3>
+          <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-1">
+              <Check className="h-6 w-6 stroke-[3]" />
             </div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Credentials Updated!</h2>
+            <p className="text-xs text-gray-500">
+              The administrator credentials for <strong>{resetSuccessCredentials.orgName}</strong> have been updated.
+            </p>
 
-            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl font-mono text-xs space-y-1.5 border">
-              <p>Org: {resetSuccessCredentials.orgName}</p>
-              <p>Email: <strong>{resetSuccessCredentials.email}</strong></p>
-              <p>Password: <strong className="text-emerald-600">{resetSuccessCredentials.password}</strong></p>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700 font-mono text-xs text-left space-y-1">
+              <p><span className="text-gray-500 font-sans">Email:</span> <strong>{resetSuccessCredentials.email}</strong></p>
+              <p><span className="text-gray-500 font-sans">Password:</span> <strong className="text-emerald-600">{resetSuccessCredentials.password}</strong></p>
             </div>
-
-            <button
-              onClick={() => copyCustomerText(
-                resetSuccessCredentials.orgName,
-                resetSuccessCredentials.email,
-                resetSuccessCredentials.password
-              )}
-              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              <span>{copied ? 'Copied to Clipboard!' : 'Copy Credentials to Share with Customer'}</span>
-            </button>
 
             <button
               onClick={() => setResetSuccessCredentials(null)}
-              className="w-full py-1 text-xs text-gray-500 hover:text-gray-800"
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md"
             >
-              Close
+              Done
             </button>
           </div>
         </div>

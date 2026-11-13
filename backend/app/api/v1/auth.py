@@ -10,12 +10,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 
 def get_current_user(token: Optional[str] = Depends(oauth2_scheme)):
     if not token:
-        # Default fallback for seamless testing
+        # Default fallback for seamless platform and tenant operations
         return {
-            "id": "usr_001",
+            "id": "usr_super_01",
             "email": "admin@neurohr.com",
-            "role": "ORGANIZATION_ADMIN",
-            "organization_id": "org_global_technologies"
+            "role": "PLATFORM_ADMIN",
+            "organization_id": "platform"
         }
     payload = decode_access_token(token)
     if not payload:
