@@ -50,20 +50,26 @@ export default function ERPPortal() {
     fetchERPData();
   }, []);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   const fetchERPData = async () => {
     try {
+      const headers = getAuthHeaders();
       const [pRes, rRes, bRes, aRes, eRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/v1/erp/projects').catch(() => ({ data: [] })),
-        axios.get('http://localhost:8000/api/v1/erp/resources').catch(() => ({ data: null })),
-        axios.get('http://localhost:8000/api/v1/erp/budgets').catch(() => ({ data: null })),
-        axios.get('http://localhost:8000/api/v1/erp/assets').catch(() => ({ data: [] })),
-        axios.get('http://localhost:8000/api/v1/workforce/employees').catch(() => ({ data: [] }))
+        axios.get('http://localhost:8000/api/v1/erp/projects', { headers }).catch(() => ({ data: [] })),
+        axios.get('http://localhost:8000/api/v1/erp/resources', { headers }).catch(() => ({ data: null })),
+        axios.get('http://localhost:8000/api/v1/erp/budgets', { headers }).catch(() => ({ data: null })),
+        axios.get('http://localhost:8000/api/v1/erp/assets', { headers }).catch(() => ({ data: [] })),
+        axios.get('http://localhost:8000/api/v1/workforce/employees', { headers }).catch(() => ({ data: [] }))
       ]);
-      setProjects(pRes.data);
+      setProjects(Array.isArray(pRes.data) ? pRes.data : []);
       setResourceData(rRes.data);
       setBudgets(bRes.data);
-      setAssets(aRes.data);
-      setAllEmployees(eRes.data);
+      setAssets(Array.isArray(aRes.data) ? aRes.data : []);
+      setAllEmployees(Array.isArray(eRes.data) ? eRes.data : []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -73,7 +79,7 @@ export default function ERPPortal() {
 
   const handleAddMember = async (projectId: string, employeeId: string) => {
     try {
-      await axios.post(`http://localhost:8000/api/v1/erp/projects/${projectId}/members`, { employee_id: employeeId });
+      await axios.post(`http://localhost:8000/api/v1/erp/projects/${projectId}/members`, { employee_id: employeeId }, { headers: getAuthHeaders() });
       setActionMessage("Successfully assigned employee to project!");
       setTimeout(() => setActionMessage(null), 3000);
       setShowAddModal(false);
@@ -86,7 +92,7 @@ export default function ERPPortal() {
   const handleRemoveMember = async (projectId: string, employeeId: string) => {
     if (!window.confirm("Remove this employee from the project team and move them back to the bench?")) return;
     try {
-      await axios.delete(`http://localhost:8000/api/v1/erp/projects/${projectId}/members/${employeeId}`);
+      await axios.delete(`http://localhost:8000/api/v1/erp/projects/${projectId}/members/${employeeId}`, { headers: getAuthHeaders() });
       setActionMessage("Employee moved to Bench.");
       setTimeout(() => setActionMessage(null), 3000);
       fetchERPData();
@@ -98,7 +104,7 @@ export default function ERPPortal() {
   const handleTriggerSync = async () => {
     setSyncing(true);
     try {
-      const res = await axios.post('http://localhost:8000/api/v1/erp/sync');
+      const res = await axios.post('http://localhost:8000/api/v1/erp/sync', {}, { headers: getAuthHeaders() });
       setSyncStatus(res.data);
     } catch (e) {
       console.error(e);
@@ -227,7 +233,11 @@ export default function ERPPortal() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {projects.map(proj => {
-              const pctSpent = Math.round((proj.spent / proj.budget) * 100);
+              const spentVal = proj.spent ?? (proj as any).budget_spent ?? 0;
+              const budgetVal = proj.budget ?? 1;
+              const pctSpent = Math.min(100, Math.round((spentVal / budgetVal) * 100));
+              const skillsList = proj.critical_skills_needed || (proj as any).tech_stack || [];
+              const deadline = proj.target_deadline || (proj as any).target_golive || '2027-04-15';
               return (
                 <div key={proj.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 space-y-4 shadow-sm">
                   <div className="flex justify-between items-start">
@@ -246,7 +256,7 @@ export default function ERPPortal() {
 
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>Budget Burn (₹{proj.spent.toLocaleString('en-IN')} / ₹{proj.budget.toLocaleString('en-IN')})</span>
+                      <span>Budget Burn (₹{spentVal.toLocaleString('en-IN')} / ₹{budgetVal.toLocaleString('en-IN')})</span>
                       <span className="font-semibold text-gray-800 dark:text-gray-200">{pctSpent}%</span>
                     </div>
                     <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -264,7 +274,7 @@ export default function ERPPortal() {
                     <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-xl">
                       <span className="text-gray-400">Target Go-Live</span>
                       <p className="text-base font-bold text-gray-900 dark:text-white mt-0.5">
-                        {proj.target_deadline}
+                        {deadline}
                       </p>
                     </div>
                   </div>
@@ -276,7 +286,7 @@ export default function ERPPortal() {
                         <span>Staffing Gap: {proj.staffing_gap} open roles!</span>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {proj.critical_skills_needed.map(skill => (
+                        {skillsList.map((skill: string) => (
                           <span key={skill} className="px-2 py-0.5 bg-white dark:bg-gray-800 rounded text-[10px] text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800">
                             {skill}
                           </span>

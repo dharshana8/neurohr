@@ -59,17 +59,23 @@ export default function HRISPortal() {
     fetchData();
   }, []);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   const fetchData = async () => {
     setLoading(false);
     try {
+      const headers = getAuthHeaders();
       const [lRes, gRes, aRes, pRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/v1/hris/leaves').catch(() => ({ data: [] })),
-        axios.get('http://localhost:8000/api/v1/hris/grievances').catch(() => ({ data: [] })),
-        axios.get('http://localhost:8000/api/v1/hris/attendance/summary').catch(() => ({ data: null })),
-        axios.get('http://localhost:8000/api/v1/hris/payroll/overview').catch(() => ({ data: null }))
+        axios.get('http://localhost:8000/api/v1/hris/leaves', { headers }).catch(() => ({ data: [] })),
+        axios.get('http://localhost:8000/api/v1/hris/grievances', { headers }).catch(() => ({ data: [] })),
+        axios.get('http://localhost:8000/api/v1/hris/attendance/summary', { headers }).catch(() => ({ data: null })),
+        axios.get('http://localhost:8000/api/v1/hris/payroll/overview', { headers }).catch(() => ({ data: null }))
       ]);
-      setLeaves(lRes.data);
-      setGrievances(gRes.data);
+      setLeaves(Array.isArray(lRes.data) ? lRes.data : []);
+      setGrievances(Array.isArray(gRes.data) ? gRes.data : []);
       setAttendance(aRes.data);
       setPayroll(pRes.data);
     } catch (e) {
@@ -79,7 +85,7 @@ export default function HRISPortal() {
 
   const handleUpdateLeaveStatus = async (leaveId: string, status: 'APPROVED' | 'REJECTED') => {
     try {
-      await axios.put(`http://localhost:8000/api/v1/hris/leaves/${leaveId}/status?new_status=${status}`);
+      await axios.put(`http://localhost:8000/api/v1/hris/leaves/${leaveId}/status?new_status=${status}`, {}, { headers: getAuthHeaders() });
       setLeaves(prev => prev.map(l => l.id === leaveId ? { ...l, status } : l));
     } catch (e) {
       console.error(e);

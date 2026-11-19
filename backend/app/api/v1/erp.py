@@ -53,9 +53,12 @@ def generate_tenant_projects(org_id: str, emps: list) -> list:
             "department": tmpl["dept"],
             "budget": tmpl["budget"],
             "budget_spent": tmpl["spent"],
+            "spent": tmpl["spent"],
             "headcount_required": required_headcount,
             "target_golive": f"2027-0{min(9, idx + 2)}-28",
+            "target_deadline": f"2027-0{min(9, idx + 2)}-28",
             "tech_stack": tmpl["tech"],
+            "critical_skills_needed": tmpl["tech"],
             "assigned_employees": assigned_ids
         }
         projects.append(proj_doc)
@@ -124,6 +127,12 @@ def get_erp_projects(current_user: dict = Depends(get_current_user)):
                         "risk_level": e.get("risk_level", "LOW")
                     })
 
+        proj["spent"] = proj.get("spent", proj.get("budget_spent", 0))
+        proj["budget_spent"] = proj.get("budget_spent", proj.get("spent", 0))
+        proj["target_deadline"] = proj.get("target_deadline", proj.get("target_golive", "2027-04-15"))
+        proj["target_golive"] = proj.get("target_golive", proj.get("target_deadline", "2027-04-15"))
+        proj["critical_skills_needed"] = proj.get("critical_skills_needed", proj.get("tech_stack", ["React", "Node.js", "Python"]))
+        proj["tech_stack"] = proj.get("tech_stack", proj.get("critical_skills_needed", ["React", "Node.js", "Python"]))
         proj["members"] = members
         proj["headcount_allocated"] = len(members)
         req_count = proj.get("headcount_required", max(len(members), 1))
