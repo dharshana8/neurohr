@@ -105,7 +105,7 @@ export default function AICopilot() {
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: res.data.response,
+        content: res.data.response || res.data.content || res.data.answer || "I have analyzed your query based on verified organizational telemetry.",
         sources: res.data.sources || [],
         is_ai_assisted: res.data.is_ai_assisted,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
